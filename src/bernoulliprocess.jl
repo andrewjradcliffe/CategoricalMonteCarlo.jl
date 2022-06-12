@@ -256,16 +256,16 @@ Caller is responsible for ensuring that `∑p = 1`.
 """
 @inline function categorical!(C::AbstractArray{S, N}, p::AbstractVector{T}) where {T<:Real} where {S<:Integer, N}
     k = length(p)
-    @inbounds for n ∈ eachindex(C)
+    @inbounds for i ∈ eachindex(C)
         j = 1
         s = p[1]
         u = rand()
         while s < u && j < k
             s += p[j += 1]
         end
-        c[n] = j
+        C[i] = j
     end
-    return c
+    return C
 end
 
 """
