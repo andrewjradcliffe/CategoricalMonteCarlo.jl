@@ -36,15 +36,40 @@ function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     keeps = ntuple(d -> d ∉ dims, Val(N))
     defaults = ntuple(d -> firstindex(A, d), Val(N))
     C = Vector{Int}(undef, size(B, 2))
-    for IA ∈ CartesianIndices(A)
+    @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keeps, defaults)
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
-            for j ∈ axes(B, 2)
-                # c = rand(Iₛ)
+            @simd for j ∈ axes(B, 2)
                 c = C[j]
                 B[c, j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+function sample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample3!(B, A, dims)
+end
+
+function sample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    C = Vector{Int}(undef, size(B, N′))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keeps, defaults)
+        a = A[IA]
+        for Iₛ ∈ a
+            rand!(C, Iₛ)
+            @simd for j ∈ axes(B, N′)
+                c = C[j]
+                B[c, IR, j] += one(S)
             end
         end
     end
@@ -62,20 +87,20 @@ end
 function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
     keeps = ntuple(d -> d ∉ dims, Val(N))
     defaults = ntuple(d -> firstindex(A, d), Val(N))
-    tsample2!(B, A, keeps, defaults, 1:size(B, 2))
+    tsample2!(B, A, keeps, defaults, firstindex(B, 2):size(B, 2))
 end
 
 function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keeps, defaults, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        for IA ∈ CartesianIndices(A)
+        C = Vector{Int}(undef, L) # similar(𝒥, Int)
+        @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keeps, defaults)
             a = A[IA]
             for Iₛ ∈ a
                 rand!(C, Iₛ)
-                for l ∈ eachindex(𝒥)
+                @simd for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
                     B[c, j, IR] += one(S)
@@ -93,22 +118,70 @@ function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
     end
 end
 
+function tsample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    tsample3!(B, A, dims)
+end
+
+function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    tsample3!(B, A, keeps, defaults, firstindex(B, N′):size(B, N′))
+end
+
+function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keeps, defaults, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
+    (; start, stop) = 𝒥
+    L = stop - start + 1
+    if L ≤ 1024
+        C = Vector{Int}(undef, L) # similar(𝒥, Int)
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keeps, defaults)
+            a = A[IA]
+            for Iₛ ∈ a
+                rand!(C, Iₛ)
+                @simd for l ∈ eachindex(C, 𝒥)
+                    c = C[l]
+                    j = 𝒥[l]
+                    B[c, IR, j] += one(S)
+                end
+            end
+        end
+        return B
+    else
+        h = (start + stop) >> 1
+        @sync begin
+            Threads.@spawn tsample3!(B, A, keeps, defaults, start:h)
+            tsample3!(B, A, keeps, defaults, (h + 1):stop)
+        end
+        return B
+    end
+end
 
 A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+A = [[1, 1000], [100, 200, 300, 400], [200, 400, 600, 800, 1000, 900]]
 D = fill(A, 100,50,50);
 
-B_5 = sample(Int, D, 1000, 6, (1,2,3));
-B_6 = sample_simd(Int, D, 6, 1000);
-B_7 = sample2(Int, D, 1000, 6, (1,2,3));
+num_sim = 10^3
+@timev B_5 = sample(Int, D, num_sim, num_cat(D), (1,2,3));
+@timev B_6 = sample_simd(Int, D, num_cat(D), num_sim);
+@timev B_7 = sample2(Int, D, num_sim, num_cat(D), (1,));
+@timev B_7_3 = sample3(Int, D, num_sim, num_cat(D), (1,));
+
 
 @benchmark sample!($B_5, $D, $(1,2,3))
 @benchmark sample_simd!($B_6, $D)
 @benchmark sample2!($B_7, $D, $(1,2,3))
 
-@timev B_8 = tsample(Int, D, 100000, 6, (1,2,3));
-@timev B_9 = tsample_simd(Int, D, 6, 100000);
-@timev B_10 = tsample2(Int, D, 100000, 6, (1,2,3));
-@timev B_11 = tsample2(Int, D, 100000, 6, (1,));
+num_sim = 10^5
+@timev B_8 = tsample(Int, D, num_sim, num_cat(D), (1,2,3));
+@timev B_9 = tsample_simd(Int, D, num_cat(D), num_sim);
+@timev B_10 = tsample2(Int, D, num_sim, num_cat(D), (1,2,3));
+@timev B_11 = tsample3(Int, D, num_sim, num_cat(D), (1,2,3));
+@timev B_12 = tsample2(Int, D, 1000, num_cat(D), (1,));
+sum(B_8) == sum(B_9) == sum(B_10)
 
 function sample_simd!(B::Matrix{T}, A::Vector{Vector{Int}}) where {T<:Real}
     c = Vector{Int}(undef, size(B, 2))
