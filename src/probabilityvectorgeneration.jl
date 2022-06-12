@@ -20,6 +20,8 @@
 # state from an earlier step, so that a simple composition such as f ∘ g ∘ h
 # would fail.
 
+# The input to the function applied to each element of each element of A
+# will generally have a signature which accepts a single argument.
 # The result of the function applied to each element of each element of A
 # should always be Tuple{Vector{Int}, Vector{<:AbstractFloat}}
 
@@ -70,7 +72,7 @@ end
 # g(f, I, 𝐰) = g(f(Iₛ, ω)) # g ∘ f
 _g(Iₛ, ω) = Iₛ, cumsum(ω)
 _g((Iₛ, ω)) = _g(Iₛ, ω)
-# an optimized case for Algorithm1
+# an optimized case for Algorithm_1
 function _g(Iₛ::Vector{Int})
     N = length(Iₛ)
     c = inv(N)
@@ -83,3 +85,61 @@ end
 
 pvg_cumulative(f, A, ws) = pvg(_g ∘ f, A, ws)
 pvg_cumulative!(f, B, A, ws) = pvg!(_g ∘ f, B, A, ws)
+
+# Example: elaborate case (I, 𝐰₂)
+#                                  I ∈ ℕᴺ            𝐰₂ ∈ ℝᴺ
+#                                   |                  |
+#                                   v                  v
+# A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{Float64}}}, N} where {N}
+function f(I, 𝐰₂, 𝐰, u)
+    Iₛ = I
+    𝐰₁ = Algorithm_2_1(I, 𝐰)
+    ω₁ = Algorithm_4(𝐰₁, 𝐰₂)
+    ω = Algorithm_3(ω₁, u)
+    Iₛ, ω
+end
+f((I, 𝐰₂), 𝐰, u) = f(I, 𝐰₂, 𝐰, u)
+# closure to provide u; u could also just be hard-coded into original function definition
+f((I, 𝐰₂), 𝐰) = f(I, 𝐰₂, 𝐰, 0.5) # This meets the necessary signature for pvg
+
+# Example: simple Algorithm 2.2.
+#                                  I₁ ∈ ℕᴺ       I₂ ∈ ℝᴺ
+#                                   |             |
+#                                   v             v
+# A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{Int}}}, N} where {N}
+function f(Is, ws)
+    Iₛ = Is[1]
+    ω = Algorithm_2_2(Is, ws)
+    Iₛ, ω
+end
+
+# Example: Algorithm 1.
+#                            I₁ ∈ ℕᴺ
+#                             |
+#                             v
+# A::AbstractArray{Vector{Vector{Int}}, N} where {N}
+function f(Iₛ)
+    N = length(Iₛ)
+    ω = fill(inv(N), N)
+    Iₛ, ω
+end
+# This is best handled by a special dispatch as it can be an optimized case. It is
+# also a nice opportunity to be able to just sample such cases.
+# However, if one wants to sample using the in-order traversal, it may be most
+# efficient to use pre-computed Σω's. Thus, generating a ::Tuple{Vector{Int}, Vector{Float64}}
+# for each is a good utility for Algorithm 1. If one wants to sample without allocation,
+# the "default" sample algorithm can be made to dispatch on eltype(A)::Vector{Vector{Int}}
+# Benchmarking is needed to determine if pre-computed Σω's are faster than `rand(Iₛ)`
+
+# Example: Algorithm 2.1. + Algorithm 3.
+#                            Iₛ ∈ ℕᴺ
+#                             |
+#                             v
+# A::AbstractArray{Vector{Vector{Int}}, N} where {N}
+function f(I, 𝐰, u)
+    Iₛ = I
+    ω₁ = Algorithm_2_1(I, 𝐰)
+    ω = Algorithm_3(ω₁, u)
+    Iₛ, ω
+end
+f(I, 𝐰) = f(I, 𝐰, 0.5) # closure to provide u; or just hard code u
