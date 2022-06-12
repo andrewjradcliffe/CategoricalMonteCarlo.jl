@@ -244,6 +244,18 @@ See also: [`categorical!`](@ref)
     return j
 end
 
+# @inline function categorical(p::AbstractVector{T}, Iₛ::Vector{Int}) where {T<:Real}
+#     k = length(p)
+#     j = 1
+#     s = p[1]
+#     u = rand()
+#     @inbounds while s < u && j < k
+#         s += p[j += 1]
+#     end
+#     return Iₛ[j]
+# end
+
+
 """
     categorical!(C::Array{<:Integer, N}, p::Vector{<:Real}) where {N}
 
@@ -256,12 +268,13 @@ Caller is responsible for ensuring that `∑p = 1`.
 """
 @inline function categorical!(C::AbstractArray{S, N}, p::AbstractVector{T}) where {T<:Real} where {S<:Integer, N}
     k = length(p)
+    Σp = cumsum(p)
     @inbounds for i ∈ eachindex(C)
         j = 1
-        s = p[1]
+        s = Σp[1]
         u = rand()
         while s < u && j < k
-            s += p[j += 1]
+            s = Σp[j += 1]
         end
         C[i] = j
     end
@@ -291,7 +304,7 @@ of the same size, potentially with different `Σp`'s.
 Note: `U` is storage, potentially uninitialized, for the uniform random draws
 which will ultimately be used to draw samples from the categorical distribution.
 """
-@inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}) where {T<:Real} where {N} where {S<:Integer}
+@inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}) where {T<:AbstractFloat} where {N} where {S<:Integer}
     k = length(Σp)
     rand!(U)
     @inbounds for i ∈ eachindex(C, U)
@@ -307,12 +320,12 @@ which will ultimately be used to draw samples from the categorical distribution.
 end
 
 """
-    categorical!(C::Array{<:Integer, N}, U::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real, N}
+    categorical!(C::Array{<:Integer, N}, U::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:AbstractFloat, N}
 
 `Σp` is a vector of any size, potentially uninitialized, which will be
 `resize!`'d and filled with the cumulative probabilities required for sampling.
 """
-@inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}, p::AbstractVector{T}) where {T<:Real} where {N} where {S<:Integer}
+@inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat} where {N} where {S<:Integer}
     k = length(p)
     resize!(Σp, k)
     cumsum!(Σp, p)
