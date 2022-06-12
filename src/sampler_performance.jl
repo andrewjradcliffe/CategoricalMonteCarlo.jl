@@ -74,3 +74,13 @@ D = fill(A, 100,50,50);
 @timev B_2 = sample(Int, D′, 1000, num_cat(D′), (1,2,3));
 
 @timev B_3 = sample2(Int, D, 1000, num_cat(D), (1,2,3));
+
+
+function countcategory(A::AbstractArray{T, N}) where {T<:Integer, N}
+    mx = maximum(A)
+    v = zeros(Int, mx)
+    @inbounds @simd for i ∈ eachindex(A)
+        v[A[i]] += 1
+    end
+    v
+end
