@@ -20,7 +20,7 @@ function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}
 end
 
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
-    keeps = ntuple(d -> d ∈ dims, Val(N))
+    keeps = ntuple(d -> d ∉ dims, Val(N))
     defaults = ntuple(d -> firstindex(A, d), Val(N))
     for j ∈ axes(B, N′)
         for IA ∈ CartesianIndices(A)
@@ -45,7 +45,7 @@ function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n
 end
 
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
-    keeps = ntuple(d -> d ∈ dims, Val(N))
+    keeps = ntuple(d -> d ∉ dims, Val(N))
     defaults = ntuple(d -> firstindex(A, d), Val(N))
     for j ∈ axes(B, N′)
         for IA ∈ CartesianIndices(A)
@@ -57,3 +57,21 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     end
     B
 end
+
+
+# # A simple check
+# A = rand(2,3,4,5,6);
+# N = ndims(A)
+# dims = (2,3,5)
+# num_categories = 3
+# num_samples = 10
+
+# keeps = ntuple(d -> d ∉ dims, Val(N))
+# defaults = ntuple(d -> firstindex(A, d), Val(N))
+
+# Dᴬ = size(A)
+# Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+# B = similar(A, S, Dᴮ);
+# keeps_b, defaults_b = Broadcast.newindexer(B)
+# keeps_b[2:end-1] == keeps
+
