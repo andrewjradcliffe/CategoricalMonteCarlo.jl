@@ -233,7 +233,7 @@ of categories is equal to the length of `p`. Caller is responsible for ensuring 
 
 See also: [`categorical!`](@ref)
 """
-function categorical(p::Vector{T}) where {T<:Real}
+@inline function categorical(p::AbstractVector{T}) where {T<:Real}
     k = length(p)
     j = 1
     s = p[1]
@@ -243,30 +243,6 @@ function categorical(p::Vector{T}) where {T<:Real}
     end
     return j
 end
-
-# c1 = categorical(p, 1000000);
-# t1 = [count(==(i), c1) for i = 1:5]
-
-# @benchmark categorical($p2)
-# cd = Categorical(p2);
-# @benchmark rand($cd)
-
-# function categorical(p::Vector{T}, dims::Vararg{Int, N}) where {T<:Real} where {N}
-#     c = Array{Int, N}(undef, dims)
-#     k = length(p)
-#     @inbounds for n ∈ eachindex(c)
-#         j = 1
-#         @inbounds s = p[1]
-#         u = rand()
-#         while s < u && j < k
-#             s += p[j += 1]
-#         end
-#         c[n] = j
-#     end
-#     return c
-# end
-
-# @benchmark categorical($p, 10000)
 
 """
     categorical!(C::Array{<:Integer, N}, p::Vector{<:Real}) where {N}
@@ -278,7 +254,7 @@ This may be useful when the memory overhead of a batch `rng` call exceeds the
 time savings.
 Caller is responsible for ensuring that `∑p = 1`.
 """
-function categorical!(C::Array{S, N}, p::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+@inline function categorical!(C::AbstractArray{S, N}, p::AbstractVector{T}) where {T<:Real} where {S<:Integer, N}
     k = length(p)
     @inbounds for n ∈ eachindex(C)
         j = 1
@@ -298,7 +274,7 @@ end
 Sample an array of categories from the k-dimensional categorical distribution
 defined by the vector of probabilities `p`.
 """
-categorical(p::Vector{T}, dims::Vararg{Int, N}) where {T<:Real} where {N} =
+@inline categorical(p::AbstractVector{T}, dims::Vararg{Int, N}) where {T<:Real} where {N} =
     categorical!(Array{Int, N}(undef, dims), p)
 
 ############################################################################################
@@ -315,7 +291,7 @@ of the same size, potentially with different `Σp`'s.
 Note: `U` is storage, potentially uninitialized, for the uniform random draws
 which will ultimately be used to draw samples from the categorical distribution.
 """
-function categorical!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+@inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}) where {T<:Real} where {N} where {S<:Integer}
     k = length(Σp)
     rand!(U)
     @inbounds for i ∈ eachindex(C, U)
@@ -330,23 +306,13 @@ function categorical!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:
     return C
 end
 
-# """
-#     categorical(p::Vector{<:Real}, Σp::Vector{<:Real}, dims::Int...)
-
-# Sample an array of categories from the k-dimensional categorical distribution
-# defined by the vector of probabilities `p` and cumulative sum `Σp`.
-# """
-# categorical(p::Vector{T}, Σp::Vector{T}, dims::Vararg{Int, N}) where {T<:Real, N} =
-#     categorical!(Array{Int, N}(undef, dims), Array{Float64, N}(undef, dims), p, Σp)
-
-
 """
     categorical!(C::Array{<:Integer, N}, U::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real, N}
 
 `Σp` is a vector of any size, potentially uninitialized, which will be
 `resize!`'d and filled with the cumulative probabilities required for sampling.
 """
-function categorical!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+@inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}, p::AbstractVector{T}) where {T<:Real} where {N} where {S<:Integer}
     k = length(p)
     resize!(Σp, k)
     cumsum!(Σp, p)
