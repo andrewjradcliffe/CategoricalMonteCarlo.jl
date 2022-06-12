@@ -72,3 +72,17 @@ D = fill(A, 100,50,50);
 @timev B_1 = sample(Int, D, 1000, num_cat(D), (1,2,3));
 
 @timev B_2 = sample(Int, D′, 1000, num_cat(D′), (1,2,3));
+
+@timev B_3 = sample2(Int, D, 1000, num_cat(D), (1,2,3));
+
+
+using BenchmarkTools
+C = Vector{Int}(undef, 500);
+U = rand(500);
+Σp = cumsum(A[3][2])
+
+@benchmark categorical_simd!($C, $U, $Σp)
+@benchmark categorical!($C, $U, $Σp)
+
+@benchmark categorical1!($C, $U, $Σp)
+@benchmark categorical2!($C, $U, $Σp)

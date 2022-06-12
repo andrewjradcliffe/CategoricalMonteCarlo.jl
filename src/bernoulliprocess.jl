@@ -236,7 +236,7 @@ See also: [`categorical!`](@ref)
 function categorical(p::Vector{T}) where {T<:Real}
     k = length(p)
     j = 1
-    @inbounds s = p[1]
+    s = p[1]
     u = rand()
     @inbounds while s < u && j < k
         s += p[j += 1]
@@ -269,20 +269,20 @@ end
 # @benchmark categorical($p, 10000)
 
 """
-    categorical!(c::Array{<:Integer, N}, p::Vector{<:Real}) where {N}
+    categorical!(C::Array{<:Integer, N}, p::Vector{<:Real}) where {N}
 
-Fill `c` with draws from the k-dimensional categorical distribution defined by
+Fill `C` with draws from the k-dimensional categorical distribution defined by
 the vector of probabilities `p`. The time complexity of this call should be assumed
 to be greater than the batch method, as `rng` internal calls are sequential.
 This may be useful when the memory overhead of a batch `rng` call exceeds the
 time savings.
 Caller is responsible for ensuring that `∑p = 1`.
 """
-function categorical!(c::Array{S, N}, p::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+function categorical!(C::Array{S, N}, p::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
     k = length(p)
-    @inbounds for n ∈ eachindex(c)
+    @inbounds for n ∈ eachindex(C)
         j = 1
-        @inbounds s = p[1]
+        s = p[1]
         u = rand()
         while s < u && j < k
             s += p[j += 1]
@@ -305,30 +305,101 @@ categorical(p::Vector{T}, dims::Vararg{Int, N}) where {T<:Real} where {N} =
 #### 2022-04-11: Batch SIMD sampler
 
 """
-    categorical!(c::Array{<:Integer, N}, u::Array{T, N}, Σp::Vector{T}) where {T<:Real, N}
+    categorical!(C::Array{<:Integer, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:Real, N}
 
-Fill `c` with draws from the k-dimensional categorical distribution defined by
+Fill `C` with draws from the k-dimensional categorical distribution defined by
 the vector of cumulative probabilities `Σp`. This method is optimized
-(internal `rng` calls are batched) for repeated calls involving arrays `c`, `u`
+(internal `rng` calls are batched) for repeated calls involving arrays `C`, `U`
 of the same size, potentially with different `Σp`'s.
 
-Note: `u` is storage, potentially uninitialized, for the uniform random draws
+Note: `U` is storage, potentially uninitialized, for the uniform random draws
 which will ultimately be used to draw samples from the categorical distribution.
 """
-function categorical!(c::Array{S, N}, us::Array{T, N}, Σp::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+function categorical!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
     k = length(Σp)
-    rand!(us)
-    @inbounds for i ∈ eachindex(c, us)
-        u = us[i]
+    rand!(U)
+    @inbounds for i ∈ eachindex(C, U)
+        u = U[i]
         j = 1
-        @inbounds s = Σp[1]
+        s = Σp[1]
         while s < u && j < k
             s = Σp[j += 1]
         end
-        c[i] = j
+        C[i] = j
     end
-    return c
+    return C
 end
+
+# @inline function _categorical(u::AbstractFloat, Σp::Vector{T}, k::Int) where {T<:AbstractFloat}
+#     j = 1
+#     s = Σp[1]
+#     @inbounds while s < u && j < k
+#         s = Σp[j += 1]
+#     end
+#     j
+# end
+
+# function categorical_simd!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+#     rand!(U)
+#     k = length(Σp)
+#     chunk_len = 256
+#     first, last = firstindex(C), lastindex(C)
+#     start = first
+#     simdstop = start + chunk_len - 4
+#     while simdstop <= last - 3
+#         @inbounds for i ∈ start:4:simdstop
+#             C[i+0] = _categorical(U[i+0], Σp, k)
+#             C[i+1] = _categorical(U[i+1], Σp, k)
+#             C[i+2] = _categorical(U[i+2], Σp, k)
+#             C[i+3] = _categorical(U[i+3], Σp, k)
+#         end
+#         checkbounds(C, simdstop+3)
+#         start += chunk_len
+#         simdstop += chunk_len
+#     end
+#     @inbounds for i ∈ start:last
+#         C[i] = _categorical(U[i], Σp, k)
+#     end
+#     C
+# end
+
+# function _categorical_simd(u::AbstractFloat, Σp::Vector{Float64})
+#     j = 0
+#     @inbounds @simd for i ∈ eachindex(Σp)
+#         j = Σp[i] ≥ u && j == 0 ? i : j
+#     end
+#     j
+# end
+
+# function categorical1!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+#     k = length(Σp)
+#     @inbounds for i ∈ eachindex(C, U)
+#         u = U[i]
+#         j = 1
+#         s = Σp[1]
+#         while s < u && j < k
+#             s = Σp[j += 1]
+#         end
+#         C[i] = j
+#     end
+#     return C
+# end
+# function categorical2!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+#     @inbounds for l ∈ eachindex(C, U)
+#         u = U[l]
+#         j = 0
+#         @inbounds @simd for i ∈ eachindex(Σp)
+#             # j = Σp[i] ≥ u && j == 0 ? i : j
+#             j = ifelse(Σp[i] ≥ u && j == 0, i, j)
+#         end
+#         C[l] = j
+#     end
+#     C
+# end
+
+
+
+
 
 # """
 #     categorical(p::Vector{<:Real}, Σp::Vector{<:Real}, dims::Int...)
@@ -341,26 +412,26 @@ end
 
 
 """
-    categorical!(c::Array{<:Integer, N}, u::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real, N}
+    categorical!(C::Array{<:Integer, N}, U::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real, N}
 
 `Σp` is a vector of any size, potentially uninitialized, which will be
 `resize!`'d and filled with the cumulative probabilities required for sampling.
 """
-function categorical!(c::Array{S, N}, us::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
+function categorical!(C::Array{S, N}, U::Array{T, N}, Σp::Vector{T}, p::Vector{T}) where {T<:Real} where {N} where {S<:Integer}
     k = length(p)
     resize!(Σp, k)
     cumsum!(Σp, p)
-    rand!(us)
-    @inbounds for i ∈ eachindex(c, us)
-        u = us[i]
+    rand!(U)
+    @inbounds for i ∈ eachindex(C, U)
+        u = U[i]
         j = 1
-        @inbounds s = Σp[1]
+        s = Σp[1]
         while s < u && j < k
             s = Σp[j += 1]
         end
-        c[i] = j
+        C[i] = j
     end
-    return c
+    return C
 end
 
 
@@ -368,11 +439,10 @@ end
 #### 2022-05-20: Multinomial
 # # Demonstrate that the sum of categorical distributions cannot be represented by
 # # a multinomial distribution.
-# using AttributionSchemes, Statistics
 
 # # Test 1
 # Is = [[1,2], [1,2,3,4], [1,2,3,4,5,6]];
-# A = mcadd1(Int, Is, 6, 10^6);
+# A = sample(Int, Is, 6, 10^6);
 # ω = A ./ 3;
 # mean(ω, dims=2)
 # var(ω, dims=2)
@@ -409,7 +479,7 @@ end
 # # # Test 2
 # # w = rand(6)
 # # ws₂ = [normweights(I, w) for I ∈ Is]
-# # A₂ = weightedmcadd1(Int, Is, w, 6, 10^6);
+# # A₂ = sample(Int, Is, w, 6, 10^6);
 # # ω₂ = A₂ ./ 3;
 # # mean(ω₂, dims=2)
 # # var(ω₂, dims=2)
@@ -426,7 +496,7 @@ end
 # # I would expect the Bernoulli-Binomial process (presumably) used in the Multinomial
 # # to become faster at larger N
 # # @benchmark rand(d, 100000)
-# # @benchmark mcadd1(Int, Is, 6, 100000)
+# # @benchmark sample(Int, Is, 6, 100000)
 # A₃ = rand(d, 10^6);
 # ω₃ = A₃ ./ 3;
 # mean(ω₃, dims=2)
