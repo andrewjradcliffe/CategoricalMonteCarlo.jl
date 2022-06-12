@@ -5,6 +5,13 @@
 #
 ############################################################################################
 
+# A ∈ 𝔻ᴰ¹ˣᴰ²ˣᴰ³ˣ⋯ ; eltype(A) = Vector{Tuple{Vector{Int}, Vector{<:AbstractFloat}}}
+#                                      (Iₛ, ω) OR (Iₛ, Σω)
+# Each sampling routine is identical: unpack the tuple, draw c ~ Categorical(ω) and
+# obtain the real category as Iₛ[c].
+# This enables an encapsulation of all PVG-induced variability, hence, a consistent
+# interface for the sampler.
+
 # Technically, `sample` only needs to know ndims(A), not necessarily the element type.
 # The appropriate dispatch on element type is necessary for `sample!`
 # `sample` could instead use
@@ -74,4 +81,3 @@ end
 # B = similar(A, S, Dᴮ);
 # keeps_b, defaults_b = Broadcast.newindexer(B)
 # keeps_b[2:end-1] == keeps
-
