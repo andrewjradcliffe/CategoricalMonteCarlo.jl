@@ -99,32 +99,6 @@ function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     B
 end
 
-function sample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
-    Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
-    B = similar(A, S, Dᴮ)
-    fill!(B, zero(S))
-    sample3!(B, A, dims)
-end
-
-function sample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
-    C = Vector{Int}(undef, size(B, N′))
-    @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keeps, defaults)
-        a = A[IA]
-        for Iₛ ∈ a
-            rand!(C, Iₛ)
-            @simd for j ∈ axes(B, N′)
-                c = C[j]
-                B[c, IR, j] += one(S)
-            end
-        end
-    end
-    B
-end
-
 function tsample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
     Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
@@ -165,6 +139,32 @@ function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
         end
         return B
     end
+end
+
+function sample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample3!(B, A, dims)
+end
+
+function sample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    C = Vector{Int}(undef, size(B, N′))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keeps, defaults)
+        a = A[IA]
+        for Iₛ ∈ a
+            rand!(C, Iₛ)
+            @simd for j ∈ axes(B, N′)
+                c = C[j]
+                B[c, IR, j] += one(S)
+            end
+        end
+    end
+    B
 end
 
 function tsample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
