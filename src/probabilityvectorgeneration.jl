@@ -23,6 +23,7 @@
 # The result of the function applied to each element of each element of A
 # should always be Tuple{Vector{Int}, Vector{<:AbstractFloat}}
 
+# The expected case: eltype(A) as above
 function pvg(f::Function, A::AbstractArray{Vector{T}, N}, ws) where {T, N}
     map(a -> map(x -> f(x, ws), a), A)
 end
@@ -46,7 +47,6 @@ function pvg!(f::Function, B::AbstractArray{Vector{Tuple{Vector{Int}, Vector{S}}
 end
 
 # A simplification: an array of T, rather than Vector{T}
-
 pvg(f::Function, A::AbstractArray{T, N}, ws) where {T, N} = map(x -> f(x, ws), A)
 
 function pvg!(f::Function, B::AbstractArray{Tuple{Vector{Int}, Vector{S}}, N}, A::AbstractArray{T, N}, ws) where {T, N} where {S<:AbstractFloat}
@@ -64,3 +64,22 @@ function pvg!(f::Function, B::AbstractArray{Tuple{Vector{Int}, Vector{S}}, N}, A
     end
     B
 end
+
+# cumulative option: f(I, 𝐰) -> (Iₛ, ω), then g(Iₛ, ω) -> (Iₛ, Σω)
+# g(Iₛ, ω) = Iₛ, cumsum(ω) # or, Iₛ, cumsum!(ω)
+# g(f, I, 𝐰) = g(f(Iₛ, ω)) # g ∘ f
+_g(Iₛ, ω) = Iₛ, cumsum(ω)
+_g((Iₛ, ω)) = _g(Iₛ, ω)
+# an optimized case for Algorithm1
+function _g(Iₛ::Vector{Int})
+    N = length(Iₛ)
+    c = inv(N)
+    Σω = Vector{Float64}(undef, N)
+    @inbounds @simd for i ∈ eachindex(Σω)
+        Σω[i] = i * c
+    end
+    Iₛ, Σω
+end
+
+pvg_cumulative(f, A, ws) = pvg(_g ∘ f, A, ws)
+pvg_cumulative!(f, B, A, ws) = pvg!(_g ∘ f, B, A, ws)
