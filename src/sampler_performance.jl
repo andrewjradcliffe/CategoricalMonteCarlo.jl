@@ -23,7 +23,7 @@ function sample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sample
     Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
-    sample!(B, A, dims)
+    sample1!(B, A, dims)
 end
 
 function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
@@ -210,27 +210,27 @@ function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
 end
 
 using Random
-A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
-A = [[1, 1000], [100, 200, 300, 400], [200, 400, 600, 800, 1000, 900]]
-D = fill(A, 100,50,50);
+A′ = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+A′ = [[1, 1000], [100, 200, 300, 400], [200, 400, 600, 800, 1000, 900]]
+D′ = fill(A′, 100,50,50);
 
 num_sim = 10^3
-@timev B_5 = sample1(Int, D, num_sim, num_cat(D), (1,2,3));
-@timev B_6 = sample_simd(Int, D, num_cat(D), num_sim);
-@timev B_7 = sample2(Int, D, num_sim, num_cat(D), (1,));
-@timev B_7_3 = sample3(Int, D, num_sim, num_cat(D), (1,));
+@timev B_5 = sample1(Int, D′, num_sim, num_cat(D′), (1,2,3));
+@timev B_6 = sample_simd(Int, D′, num_cat(D′), num_sim);
+@timev B_7 = sample2(Int, D′, num_sim, num_cat(D′), (1,));
+@timev B_7_3 = sample3(Int, D′, num_sim, num_cat(D′), (1,));
 
 
-@benchmark sample!($B_5, $D, $(1,2,3))
-@benchmark sample_simd!($B_6, $D)
-@benchmark sample2!($B_7, $D, $(1,2,3))
+@benchmark sample!($B_5, $D′, $(1,2,3))
+@benchmark sample_simd!($B_6, $D′)
+@benchmark sample2!($B_7, $D′, $(1,2,3))
 
 num_sim = 10^4
-@timev B_8 = tsample1(Int, D, num_sim, num_cat(D), (1,2,3));
-@timev B_9 = tsample_simd(Int, D, num_cat(D), num_sim);
-@timev B_10 = tsample2(Int, D, num_sim, num_cat(D), (1,2,3));
-@timev B_11 = tsample3(Int, D, num_sim, num_cat(D), (1,2,3));
-@timev B_12 = tsample2(Int, D, 1000, num_cat(D), (1,));
+@timev B_8 = tsample1(Int, D′, num_sim, num_cat(D′), (1,2,3));
+@timev B_9 = tsample_simd(Int, D′, num_cat(D′), num_sim);
+@timev B_10 = tsample2(Int, D′, num_sim, num_cat(D′), (1,2,3));
+@timev B_11 = tsample3(Int, D′, num_sim, num_cat(D′), (1,2,3));
+@timev B_12 = tsample2(Int, D′, 1000, num_cat(D′), (1,));
 sum(B_8) == sum(B_9) == sum(B_10)
 
 function sample_simd!(B::Matrix{T}, A::Vector{Vector{Int}}) where {T<:Real}
