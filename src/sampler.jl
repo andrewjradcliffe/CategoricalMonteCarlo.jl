@@ -136,19 +136,19 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, di
 end
 
 # Examples
-A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
-B = sample(Int, A, 10, 6, (1,))
-B′ = dropdims(B, dims=2)
-@code_warntype sample!(B, A, (1,))
+# A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+# B = sample(Int, A, 10, 6, (1,))
+# B′ = dropdims(B, dims=2)
+# @code_warntype sample!(B, A, (1,))
 
-A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
-B = sample(Int, A, 10, 6, (1,))
-B′ = dropdims(B, dims=2)
-@code_warntype sample!(B, A, (1,))
+# A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+# B = sample(Int, A, 10, 6, (1,))
+# B′ = dropdims(B, dims=2)
+# @code_warntype sample!(B, A, (1,))
 
-C = fill(A, 2,3,4);
-B = sample(Int, C, 10, 6, (1,3));
-@code_warntype sample!(B, C, (1,3))
+# C = fill(A, 2,3,4);
+# B = sample(Int, C, 10, 6, (1,3));
+# @code_warntype sample!(B, C, (1,3))
 
 # Conveniences
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
