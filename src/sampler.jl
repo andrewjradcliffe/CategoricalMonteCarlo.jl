@@ -176,7 +176,9 @@ B_4 = sample_simd(Int, C, 6, 1000);
 # As the input array becomes large, SIMD PRNG sampling tends to be better
 # due to the fact that each element of A is accessed only once.
 # -- There is always the option of sampling across the j-indices of B
-# and placing dimensions of A on the 3rd...end positions
+# and placing dimensions of A on the 3rd...end positions.
+# If annotated with @inbounds and @simd, this is as fast (or faster) than
+# the simple `sample_simd` approach
 function sample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
     Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
