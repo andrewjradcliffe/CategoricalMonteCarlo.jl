@@ -158,3 +158,74 @@ num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFl
 
 num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(maximum, a), A)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(maximum, A)
+
+
+B_1 = sample(Int, A, 1000, 6, (1,));
+B_2 = sample_simd(Int, A, 6, 1000);
+
+@benchmark sample!($B_1, $A, $(1,))
+@benchmark sample_simd!($B_2, $A)
+
+# Eventually, at num_categories=10^4, num_samples=10^5, the in-order traversal wins
+B_3 = sample(Int, C, 1000, 6, (1,2,3));
+B_4 = sample_simd(Int, C, 6, 1000);
+
+@benchmark sample!($B_3, $C, $(1,2,3))
+@benchmark sample_simd!($B_4, $C)
+
+# As the input array becomes large, SIMD PRNG sampling tends to be better
+# due to the fact that each element of A is accessed only once.
+D = fill(A, 100,50,50);
+
+B_5 = sample(Int, D, 1000, 6, (1,2,3));
+B_6 = sample_simd(Int, D, 6, 1000);
+
+@benchmark sample!($B_5, $D, $(1,2,3))
+@benchmark sample_simd!($B_6, $D)
+
+function sample_simd!(B::Matrix{T}, A::Vector{Vector{Int}}) where {T<:Real}
+    c = Vector{Int}(undef, size(A, 2))
+    @inbounds for m ∈ eachindex(A)
+        idxs = A[m]
+        if length(idxs) == 1
+            @inbounds i = idxs[1]
+            @inbounds @simd ivdep for j ∈ axes(A, 2)
+                B[i, j] += one(T)
+            end
+        else
+            rand!(c, idxs)
+            @inbounds @simd for j ∈ axes(A, 2)
+                i = c[j]
+                B[i, j] += one(T)
+            end
+        end
+    end
+    return A
+end
+sample_simd(::Type{T}, A::Vector{Vector{Int}}, I::Int, J::Int) where {T<:Real} =
+    sample_simd!(zeros(T, I, J), A)
+
+function sample_simd!(A::Matrix{T}, 𝓃A::Array{Vector{Vector{Int}}, N}) where {T<:Real} where {N}
+    c = Vector{Int}(undef, size(A, 2))
+    @inbounds for n ∈ eachindex(𝓃A)
+        A = 𝓃A[n]
+        for m ∈ eachindex(A)
+            idxs = A[m]
+            if length(idxs) == 1
+                @inbounds i = idxs[1]
+                @inbounds @simd ivdep for j ∈ axes(A, 2)
+                    B[i, j] += one(T)
+                end
+            else
+                rand!(c, idxs)
+                @inbounds @simd for j ∈ axes(A, 2)
+                    i = c[j]
+                    B[i, j] += one(T)
+                end
+            end
+        end
+    end
+    return A
+end
+sample_simd(::Type{T}, 𝓃A::Array{Vector{Vector{Int}}, N}, I::Int, J::Int) where {T<:Real, N} =
+    sample_simd!(zeros(T, I, J), 𝓃A)
