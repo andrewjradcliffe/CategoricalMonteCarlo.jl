@@ -23,10 +23,10 @@ function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}
     Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
-    sample!(B, A, dims)
+    sample!(B, A)
 end
 
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     # keep = ntuple(d -> d ∉ dims, Val(N))
     # default = ntuple(d -> firstindex(A, d), Val(N))
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -55,10 +55,10 @@ function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n
     Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
-    sample!(B, A, dims)
+    sample!(B, A)
 end
 
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     # keep = ntuple(d -> d ∉ dims, Val(N))
     # default = ntuple(d -> firstindex(A, d), Val(N))
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -102,10 +102,10 @@ function sample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples
     Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
-    sample!(B, A, dims)
+    sample!(B, A)
 end
 
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
     # keep = ntuple(d -> d ∉ dims, Val(N))
     # default = ntuple(d -> firstindex(A, d), Val(N))
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -130,10 +130,10 @@ function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, num_samples::Int, n
     Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
-    sample!(B, A, dims)
+    sample!(B, A)
 end
 
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
     # keep = ntuple(d -> d ∉ dims, Val(N))
     # default = ntuple(d -> firstindex(A, d), Val(N))
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
