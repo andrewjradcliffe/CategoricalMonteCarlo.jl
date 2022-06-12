@@ -18,6 +18,55 @@ B_4 = sample_simd(Int, C, 6, 1000);
 @benchmark sample!($B_3, $C, $(1,2,3))
 @benchmark sample_simd!($B_4, $C)
 
+function sample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample!(B, A, dims)
+end
+
+function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    for j ∈ axes(B, N′)
+        for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keeps, defaults)
+            a = A[IA]
+            for Iₛ ∈ a
+                c = rand(Iₛ)
+                B[c, IR, j] += one(S)
+            end
+        end
+    end
+    B
+end
+
+function tsample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    tsample!(B, A, dims)
+end
+
+function tsample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    Threads.@threads for j ∈ axes(B, N′)
+        for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keeps, defaults)
+            a = A[IA]
+            for Iₛ ∈ a
+                c = rand(Iₛ)
+                B[c, IR, j] += one(S)
+            end
+        end
+    end
+    B
+end
+
+
 # As the input array becomes large, SIMD PRNG sampling tends to be better
 # due to the fact that each element of A is accessed only once.
 # -- There is always the option of sampling across the j-indices of B
