@@ -151,10 +151,34 @@ B = sample(Int, C, 10, 6, (1,3));
 @code_warntype sample!(B, C, (1,3))
 
 # Conveniences
-num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}} =
+num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
     maximum(a -> maximum(((I, w),) -> maximum(I), a), A)
-num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}} =
+num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}} ,N} =
     maximum(((I, w),) -> maximum(I), A)
 
 num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(maximum, a), A)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(maximum, A)
+
+function tsample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    tsample!(B, A, dims)
+end
+
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    Threads.@threads for j ∈ axes(B, N′)
+        for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keeps, defaults)
+            a = A[IA]
+            for Iₛ ∈ a
+                c = rand(Iₛ)
+                B[c, IR, j] += one(S)
+            end
+        end
+    end
+    B
+end
