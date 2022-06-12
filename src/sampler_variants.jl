@@ -5,6 +5,31 @@
 #
 ############################################################################################
 
+function sample1(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample1!(B, A, dims)
+end
+
+function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    for j ∈ axes(B, N′)
+        for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keeps, defaults)
+            a = A[IA]
+            for (Iₛ, ω) ∈ a
+                c = categorical(ω)
+                B[Iₛ[c], IR, j] += one(S)
+            end
+        end
+    end
+    B
+end
+
+
 function sample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
     Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
@@ -60,6 +85,37 @@ end
 # and placing dimensions of A on the 3rd...end positions.
 # If annotated with @inbounds and @simd, this is as fast (or faster) than
 # the simple `sample_simd` approach.
+
+function sample2(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample2!(B, A, dims)
+end
+
+function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    C = Vector{Int}(undef, size(B, 2))
+    U = Vector{Float64}(undef, size(B, 2))
+    Σp = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keeps, defaults)
+        a = A[IA]
+        for (Iₛ, ω) ∈ a
+            resize!(Σp, length(ω))
+            cumsum!(Σp, ω)
+            categorical!(C, U, Σp)
+            @simd for j ∈ axes(B, 2) # ArrayInterface.indices((B, C), (2, 1))
+                c = C[j]
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
 function sample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
     Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
