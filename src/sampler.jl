@@ -37,8 +37,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, ω) ∈ a
-            @inline resize!(Σω, length(ω))
-            @inline cumsum!(Σω, ω)
+            resize!(Σω, length(ω))
+            cumsum!(Σω, ω)
             categorical!(C, U, Σω)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -68,8 +68,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ, ω = A[IA]
-        @inline resize!(Σω, length(ω))
-        @inline cumsum!(Σω, ω)
+        resize!(Σω, length(ω))
+        cumsum!(Σω, ω)
         categorical!(C, U, Σω)
         for j ∈ axes(B, 2)
             c = C[j]
