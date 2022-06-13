@@ -43,6 +43,7 @@ function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}
 end
 
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
@@ -72,6 +73,7 @@ function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n
 end
 
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
@@ -116,6 +118,7 @@ function sample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, n_sim::Int,
 end
 
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     @inbounds for IA ∈ CartesianIndices(A)
@@ -141,6 +144,7 @@ function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat::
 end
 
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     @inbounds for IA ∈ CartesianIndices(A)

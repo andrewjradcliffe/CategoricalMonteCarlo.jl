@@ -14,6 +14,7 @@ function tsample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}
 end
 
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
@@ -59,6 +60,7 @@ function tsample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, 
 end
 
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
@@ -105,6 +107,7 @@ function tsample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, n_sim::Int
 end
 
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
@@ -146,6 +149,7 @@ function tsample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat:
 end
 
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
