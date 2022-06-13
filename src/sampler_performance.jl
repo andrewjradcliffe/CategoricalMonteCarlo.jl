@@ -40,22 +40,22 @@ A′ = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
 A′ = [[1, 1000], [100, 200, 300, 400], [200, 400, 600, 800, 1000, 900]]
 D′ = fill(A′, 100,50,50);
 
-num_sim = 10^3
-@timev B_5 = sample1(Int, D′, num_sim, num_cat(D′), (1,2,3));
-@timev B_6 = sample_simd(Int, D′, num_cat(D′), num_sim);
-@timev B_7 = sample2(Int, D′, num_sim, num_cat(D′), (1,));
-@timev B_7_3 = sample3(Int, D′, num_sim, num_cat(D′), (1,));
+n_sim = 10^3
+@timev B_5 = sample1(Int, D′, n_sim, num_cat(D′), (1,2,3));
+@timev B_6 = sample_simd(Int, D′, num_cat(D′), n_sim);
+@timev B_7 = sample2(Int, D′, n_sim, num_cat(D′), (1,));
+@timev B_7_3 = sample3(Int, D′, n_sim, num_cat(D′), (1,));
 
 
 @benchmark sample!($B_5, $D′, $(1,2,3))
 @benchmark sample_simd!($B_6, $D′)
 @benchmark sample2!($B_7, $D′, $(1,2,3))
 
-num_sim = 10^4
-@timev B_8 = tsample1(Int, D′, num_sim, num_cat(D′), (1,2,3));
-@timev B_9 = tsample_simd(Int, D′, num_cat(D′), num_sim);
-@timev B_10 = tsample2(Int, D′, num_sim, num_cat(D′), (1,2,3));
-@timev B_11 = tsample3(Int, D′, num_sim, num_cat(D′), (1,2,3));
+n_sim = 10^4
+@timev B_8 = tsample1(Int, D′, n_sim, num_cat(D′), (1,2,3));
+@timev B_9 = tsample_simd(Int, D′, num_cat(D′), n_sim);
+@timev B_10 = tsample2(Int, D′, n_sim, num_cat(D′), (1,2,3));
+@timev B_11 = tsample3(Int, D′, n_sim, num_cat(D′), (1,2,3));
 @timev B_12 = tsample2(Int, D′, 1000, num_cat(D′), (1,));
 sum(B_8) == sum(B_9) == sum(B_10)
 
@@ -68,15 +68,20 @@ A = [([1, 1000], [0.3, 0.7]), ([100,200,300,400], [0.2, 0.3, 0.4, 0.1]), ([200, 
 D = fill(A, 100,50,50);
 
 @timev B = sample(Int, A, 1000, num_cat(A), (1,));
+@timev B′ = sample(Int, A′, 1000, num_cat(A), (1,));
 @timev sample!(B, A, (1,))
 
-num_sim = 10^3
-dims = (1,2)
-@timev B_1 = sample(Int, D, num_sim, num_cat(D), dims);
-@timev B_2 = sample(Int, D′, num_sim, num_cat(D′), dims);
+n_sim = 10^3
+dims = (1,2,3)
+@timev B_1 = sample(Int, D, n_sim, num_cat(D), dims);
+@timev B_2 = sample(Int, D′, n_sim, num_cat(D′), dims);
+@timev sample!(B_1, D);
+@timev sample!(B_2, D′);
 
-@timev B_1_4 = sample4(Int, D, num_sim, num_cat(D), dims);
-@timev B_2_4 = sample4(Int, D′, num_sim, num_cat(D′), dims);
+@timev B_3 = sample(Int, D′, n_sim);
+
+@timev B_1_4 = sample4(Int, D, n_sim, num_cat(D), dims);
+@timev B_2_4 = sample4(Int, D′, n_sim, num_cat(D′), dims);
 sum(B_1) == sum(B_2) == sum(B_1_4) == sum(B_2_4)
 @timev sum(B_1, dims=2);
 @timev sum(B_1_4, dims=1);
