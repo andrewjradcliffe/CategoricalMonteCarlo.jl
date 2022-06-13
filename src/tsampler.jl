@@ -33,7 +33,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vecto
                 resize!(Σω, length(ω))
                 cumsum!(Σω, ω)
                 categorical!(C, U, Σω)
-                @simd for l ∈ eachindex(C, 𝒥)
+                for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
                     B[Iₛ[c], j, IR] += one(S)
@@ -78,7 +78,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int},
             resize!(Σω, length(ω))
             cumsum!(Σω, ω)
             categorical!(C, U, Σω)
-            @simd for l ∈ eachindex(C, 𝒥)
+            for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
                 B[Iₛ[c], j, IR] += one(S)
@@ -116,13 +116,13 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L) # similar(𝒥, Int)
+        C = Vector{Int}(undef, L)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for Iₛ ∈ a
                 rand!(C, Iₛ)
-                @simd for l ∈ eachindex(C, 𝒥)
+                for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
                     B[c, j, IR] += one(S)
@@ -163,7 +163,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, k
             IR = Broadcast.newindex(IA, keep, default)
             Iₛ = A[IA]
             rand!(C, Iₛ)
-            @simd for l ∈ eachindex(C, 𝒥)
+            for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
                 B[c, j, IR] += one(S)

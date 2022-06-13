@@ -56,7 +56,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector
             resize!(Σω, length(ω))
             cumsum!(Σω, ω)
             categorical!(C, U, Σω)
-            @simd for j ∈ axes(B, 2)
+            for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
             end
@@ -85,7 +85,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
         resize!(Σω, length(ω))
         cumsum!(Σω, ω)
         categorical!(C, U, Σω)
-        @simd for j ∈ axes(B, 2)
+        for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
         end
@@ -127,7 +127,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
-            @simd for j ∈ axes(B, 2)
+            for j ∈ axes(B, 2)
                 c = C[j]
                 B[c, j, IR] += one(S)
             end
@@ -151,8 +151,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
-        @simd for j ∈ axes(B, 2)
-            c = rand(Iₛ)
+        rand!(C, Iₛ)
+        for j ∈ axes(B, 2)
+            c = C[j]
             B[c, j, IR] += one(S)
         end
     end
