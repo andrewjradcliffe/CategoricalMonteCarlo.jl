@@ -4,7 +4,7 @@ using Test
 # @testset "CategoricalMonteCarlo.jl" begin
 # end
 const tests = [
-    "utils.jl"
+    "utils.jl",
     "sampler.jl",
     "tsampler.jl",
 ]
