@@ -143,7 +143,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
         Iₛ = A[IA]
         for j ∈ axes(B, 2)
             c = rand(Iₛ)
-            B[c, IR, j] += one(S)
+            B[c, j, IR] += one(S)
         end
     end
     B
@@ -157,27 +157,3 @@ num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFl
 
 num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(maximum, a), A)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(maximum, A)
-
-function tsample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
-    Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
-    B = similar(A, S, Dᴮ)
-    fill!(B, zero(S))
-    tsample!(B, A, dims)
-end
-
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keep = ntuple(d -> d ∉ dims, Val(N))
-    default = ntuple(d -> firstindex(A, d), Val(N))
-    Threads.@threads for j ∈ axes(B, N′)
-        for IA ∈ CartesianIndices(A)
-            IR = Broadcast.newindex(IA, keep, default)
-            a = A[IA]
-            for Iₛ ∈ a
-                c = rand(Iₛ)
-                B[c, IR, j] += one(S)
-            end
-        end
-    end
-    B
-end
