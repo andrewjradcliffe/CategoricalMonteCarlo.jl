@@ -135,7 +135,7 @@ end
 # A simplification: an array of sparse vectors
 function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(n_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., n_sim)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
