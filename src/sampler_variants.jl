@@ -5,9 +5,9 @@
 #
 ############################################################################################
 
-function sample1(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+function sample1(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     sample1!(B, A, dims)
@@ -30,9 +30,9 @@ function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vecto
 end
 
 
-function sample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function sample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     sample1!(B, A, dims)
@@ -54,9 +54,9 @@ function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     B
 end
 
-function tsample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function tsample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     tsample!(B, A, dims)
@@ -86,9 +86,9 @@ end
 # If annotated with @inbounds and @simd, this is as fast (or faster) than
 # the simple `sample_simd` approach.
 
-function sample2(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+function sample2(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     sample2!(B, A, dims)
@@ -116,9 +116,9 @@ function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vecto
     B
 end
 
-function sample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function sample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     sample2!(B, A, dims)
@@ -142,9 +142,9 @@ function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     B
 end
 
-function tsample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function tsample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, num_samples, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     tsample2!(B, A, dims)
@@ -184,9 +184,9 @@ function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
     end
 end
 
-function sample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function sample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     sample3!(B, A, dims)
@@ -210,9 +210,9 @@ function sample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     B
 end
 
-function tsample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_samples::Int, num_categories::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function tsample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_categories, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_samples)
+    Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
     B = similar(A, S, Dᴮ)
     fill!(B, zero(S))
     tsample3!(B, A, dims)
@@ -250,6 +250,34 @@ function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
         end
         return B
     end
+end
+
+################
+# Sampler which has simulation index on first dimension, categories on second dimension
+function sample4(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_sim, num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample4!(B, A, dims)
+end
+
+function sample4!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
+    keeps = ntuple(d -> d ∉ dims, Val(N))
+    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    C = Vector{Int}(undef, size(B, 2))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keeps, defaults)
+        a = A[IA]
+        for Iₛ ∈ a
+            rand!(C, Iₛ)
+            @simd for j ∈ axes(B, 2)
+                c = C[j]
+                B[c, j, IR] += one(S)
+            end
+        end
+    end
+    B
 end
 
 
