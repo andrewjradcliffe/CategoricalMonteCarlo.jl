@@ -162,3 +162,15 @@ num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFl
 
 num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(maximum, a), A)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(maximum, A)
+
+@noinline function _check_reducedims(B, A)
+    Rdims = axes(B)[3:end]
+    length(Rdims) ≤ ndims(A) || throw(DimensionMismatch("cannot reduce $(ndims(A))-dimensional array to $(length(Rdims)) trailing dimensions"))
+    # ndims(B) ≤ ndims(A) + 2 || throw(DimensionMismatch)
+    for i ∈ eachindex(Rdims)
+        Ri, Ai = Rdims[i], axes(A, i)
+        sRi, sAi = length(Ri), length(Ai)
+        sRi == 1 || Ri == Ai || throw(DimensionMismatch("reduction on array with indices $(axes(A)) with output with indices $(axes(B))"))
+    end
+    true
+end
