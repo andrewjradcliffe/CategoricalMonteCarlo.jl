@@ -17,6 +17,23 @@
 # `sample` could instead use
 # A::AbstractArray{U, N} where {U<:Union{Vector{Tuple{Vector{Int}, Vector{T}}}, Tuple{Vector{Int}, Vector{T}}}} where {T<:AbstractFloat}
 
+# The bare minimum for `sample` interface-- covers all 4 other definitions.
+
+sample(::Type{S}, A, num_sim, num_cat; dims=:) where {S} = sample(S, A, num_sim, num_cat, dims)
+sample(::Type{S}, A, num_sim; dims=:) where {S} = sample(S, A, num_sim, num_cat(A), dims)
+
+function sample(::Type{S}, A::AbstractArray{T, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T, N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    B = fill!(similar(A, S, Dᴮ), zero(S))
+    sample!(B, A)
+end
+
+function sample(::Type{S}, A::AbstractArray{T, N}, num_sim::Int, num_cat::Int, ::Colon) where {S<:Real} where {T, N}
+    B = fill!(similar(A, S, (num_cat, num_sim)), zero(S))
+    sample!(B, A)
+end
+
 # The expected case: vectors of sparse vectors (as their bare components)
 function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
