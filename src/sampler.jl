@@ -165,12 +165,15 @@ num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(maximum, A)
 
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
+    n_cat = num_cat(A)
+    n_cat′ = length(axes(B, 1))
+    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
     length(Rdims) ≤ ndims(A) || throw(DimensionMismatch("cannot reduce $(ndims(A))-dimensional array to $(length(Rdims)) trailing dimensions"))
     # ndims(B) ≤ ndims(A) + 2 || throw(DimensionMismatch)
     for i ∈ eachindex(Rdims)
         Ri, Ai = Rdims[i], axes(A, i)
         sRi, sAi = length(Ri), length(Ai)
-        sRi == 1 || Ri == Ai || throw(DimensionMismatch("reduction on array with indices $(axes(A)) with output with indices $(axes(B))"))
+        sRi == 1 || Ri == Ai || throw(DimensionMismatch("reduction on array with indices $(axes(A)) with output with indices $(Rdims)"))
     end
     true
 end
