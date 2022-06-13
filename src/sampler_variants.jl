@@ -14,11 +14,11 @@ function sample1(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}
 end
 
 function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     for j ∈ axes(B, N′)
         for IA ∈ CartesianIndices(A)
-            IR = Broadcast.newindex(IA, keeps, defaults)
+            IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for (Iₛ, ω) ∈ a
                 c = categorical(ω)
@@ -39,11 +39,11 @@ function sample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::I
 end
 
 function sample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     for j ∈ axes(B, N′)
         for IA ∈ CartesianIndices(A)
-            IR = Broadcast.newindex(IA, keeps, defaults)
+            IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for Iₛ ∈ a
                 c = rand(Iₛ)
@@ -63,11 +63,11 @@ function tsample1(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::
 end
 
 function tsample1!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     Threads.@threads for j ∈ axes(B, N′)
         for IA ∈ CartesianIndices(A)
-            IR = Broadcast.newindex(IA, keeps, defaults)
+            IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for Iₛ ∈ a
                 c = rand(Iₛ)
@@ -95,13 +95,13 @@ function sample2(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}
 end
 
 function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
     Σp = Vector{T}()
     @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keeps, defaults)
+        IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, ω) ∈ a
             resize!(Σp, length(ω))
@@ -125,11 +125,11 @@ function sample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::I
 end
 
 function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     C = Vector{Int}(undef, size(B, 2))
     @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keeps, defaults)
+        IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
@@ -151,18 +151,18 @@ function tsample2(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::
 end
 
 function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
-    tsample2!(B, A, keeps, defaults, firstindex(B, 2):size(B, 2))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
+    tsample2!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
 
-function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keeps, defaults, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
+function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
         C = Vector{Int}(undef, L) # similar(𝒥, Int)
         @inbounds for IA ∈ CartesianIndices(A)
-            IR = Broadcast.newindex(IA, keeps, defaults)
+            IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for Iₛ ∈ a
                 rand!(C, Iₛ)
@@ -177,8 +177,8 @@ function tsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
     else
         h = (start + stop) >> 1
         @sync begin
-            Threads.@spawn tsample2!(B, A, keeps, defaults, start:h)
-            tsample2!(B, A, keeps, defaults, (h + 1):stop)
+            Threads.@spawn tsample2!(B, A, keep, default, start:h)
+            tsample2!(B, A, keep, default, (h + 1):stop)
         end
         return B
     end
@@ -193,11 +193,11 @@ function sample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::I
 end
 
 function sample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     C = Vector{Int}(undef, size(B, N′))
     @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keeps, defaults)
+        IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
@@ -219,18 +219,18 @@ function tsample3(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::
 end
 
 function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
-    tsample3!(B, A, keeps, defaults, firstindex(B, N′):size(B, N′))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
+    tsample3!(B, A, keep, default, firstindex(B, N′):size(B, N′))
 end
 
-function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keeps, defaults, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
+function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
         C = Vector{Int}(undef, L) # similar(𝒥, Int)
         @inbounds for IA ∈ CartesianIndices(A)
-            IR = Broadcast.newindex(IA, keeps, defaults)
+            IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for Iₛ ∈ a
                 rand!(C, Iₛ)
@@ -245,8 +245,8 @@ function tsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int
     else
         h = (start + stop) >> 1
         @sync begin
-            Threads.@spawn tsample3!(B, A, keeps, defaults, start:h)
-            tsample3!(B, A, keeps, defaults, (h + 1):stop)
+            Threads.@spawn tsample3!(B, A, keep, default, start:h)
+            tsample3!(B, A, keep, default, (h + 1):stop)
         end
         return B
     end
@@ -263,11 +263,11 @@ function sample4(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::I
 end
 
 function sample4!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
-    keeps = ntuple(d -> d ∉ dims, Val(N))
-    defaults = ntuple(d -> firstindex(A, d), Val(N))
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
     C = Vector{Int}(undef, size(B, 2))
     @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keeps, defaults)
+        IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
