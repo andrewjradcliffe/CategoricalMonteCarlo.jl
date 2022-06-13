@@ -6,9 +6,9 @@
 ############################################################################################
 # mirror of sampler.jl; separate file for variants on threading
 
-function tsample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+function tsample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     tsample!(B, A)
 end
@@ -51,9 +51,9 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vecto
 end
 
 # A simplification: an array of sparse vectors
-function tsample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+function tsample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     tsample!(B, A)
 end
@@ -97,9 +97,9 @@ end
 
 # Specialized method for eltype(A)::Vector{Vector{Int}}
 # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
-function tsample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function tsample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     tsample!(B, A)
 end
@@ -138,9 +138,9 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
 end
 
 # A simplification: an array of sparse vectors
-function tsample(::Type{S}, A::AbstractArray{Vector{Int}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function tsample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     tsample!(B, A)
 end
