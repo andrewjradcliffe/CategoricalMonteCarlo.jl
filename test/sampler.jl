@@ -44,24 +44,6 @@ end
     n_sim = 100
     A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
     D = fill(A, 10,5,5);
-    @testset "_check_reducedims" begin
-        @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 0,2), D)
-        @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 2,2), D)
-        @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 3,2), D)
-        @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 4,2), D)
-        @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 5,2), D)
-        @test _check_reducedims(Matrix{Int}(undef, 6,2), D)
-        @test _check_reducedims(Matrix{Int}(undef, 60,2), D)
-        @test _check_reducedims(Matrix{Int}(undef, 6,1), D)
-        @test _check_reducedims(Matrix{Int}(undef, 60,1), D)
-        @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,2), D)
-        @test _check_reducedims(Array{Int}(undef, 6,1,1), D)
-        @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,10,2), D)
-        @test _check_reducedims(Array{Int}(undef, 6,1,10), D)
-        @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,10,2,5), D)
-        @test _check_reducedims(Array{Int}(undef, 6,1,10,1,5), D)
-        @test _check_reducedims(Array{Int}(undef, 6,1,10,5,5), D)
-    end
     # # Specialized method for eltype(A)::Vector{Vector{Int}}
     # Admittedly, not very meaningful test as
     Pr = 1/2 * 1/4 * 1/6
@@ -70,6 +52,27 @@ end
     B = sample(Int, D, n_sim, num_cat(D), dims=(1,2,3))
     @test all(maximum(B, dims=2) .≤  length(D) .* [3; 3; 2; 2; 1; 1])
     @test all(minimum(B, dims=2) .≥ 0)
+end
+
+@testset "_check_reducedims" begin
+    A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+    D = fill(A, 10,5,5);
+    @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 0,2), D)
+    @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 2,2), D)
+    @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 3,2), D)
+    @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 4,2), D)
+    @test_throws DimensionMismatch _check_reducedims(Matrix{Int}(undef, 5,2), D)
+    @test _check_reducedims(Matrix{Int}(undef, 6,2), D)
+    @test _check_reducedims(Matrix{Int}(undef, 60,2), D)
+    @test _check_reducedims(Matrix{Int}(undef, 6,1), D)
+    @test _check_reducedims(Matrix{Int}(undef, 60,1), D)
+    @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,2), D)
+    @test _check_reducedims(Array{Int}(undef, 6,1,1), D)
+    @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,10,2), D)
+    @test _check_reducedims(Array{Int}(undef, 6,1,10), D)
+    @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,10,2,5), D)
+    @test _check_reducedims(Array{Int}(undef, 6,1,10,1,5), D)
+    @test _check_reducedims(Array{Int}(undef, 6,1,10,5,5), D)
 end
 
 @testset "num_cat" begin
