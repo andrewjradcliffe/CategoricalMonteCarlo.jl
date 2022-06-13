@@ -254,6 +254,43 @@ end
 
 ################
 # Sampler which has simulation index on first dimension, categories on second dimension
+# Follows sample2's convention otherwise
+# Alas, this does not make much difference.
+# While only a few categories would potentially occur on each rand! + increment
+# (the innermost body + loop), these categories are random, hence, the instruction pipeline
+# is most likely unable to do useful prediction. Finding the appropriate columns
+# myself would not be very useful either, as this would require a view (which costs)
+# in addition to other costs.
+function sample4(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+    Dᴬ = size(A)
+    Dᴮ = tuple(num_sim, num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    B = similar(A, S, Dᴮ)
+    fill!(B, zero(S))
+    sample4!(B, A, dims)
+end
+
+function sample4!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {T<:AbstractFloat, N}
+    keep = ntuple(d -> d ∉ dims, Val(N))
+    default = ntuple(d -> firstindex(A, d), Val(N))
+    C = Vector{Int}(undef, size(B, 1))
+    U = Vector{Float64}(undef, size(B, 1))
+    Σp = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for (Iₛ, ω) ∈ a
+            resize!(Σp, length(ω))
+            cumsum!(Σp, ω)
+            categorical!(C, U, Σp)
+            @simd for j ∈ axes(B, 1) # ArrayInterface.indices((B, C), (2, 1))
+                c = C[j]
+                B[j, Iₛ[c], IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
 function sample4(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
     Dᴮ = tuple(num_sim, num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
@@ -265,15 +302,15 @@ end
 function sample4!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, dims::NTuple{P, Int}) where {S<:Real, N′} where {P} where {N}
     keep = ntuple(d -> d ∉ dims, Val(N))
     default = ntuple(d -> firstindex(A, d), Val(N))
-    C = Vector{Int}(undef, size(B, 2))
+    C = Vector{Int}(undef, size(B, 1))
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
-            @simd for j ∈ axes(B, 2)
+            @simd for j ∈ axes(B, 1)
                 c = C[j]
-                B[c, j, IR] += one(S)
+                B[j, c, IR] += one(S)
             end
         end
     end
