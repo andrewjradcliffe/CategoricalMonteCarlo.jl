@@ -37,7 +37,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vecto
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
 
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, keep::NTuple{N, Bool}, default::NTuple{N, Int}, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
@@ -83,7 +83,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int},
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
 
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, keep::NTuple{N, Bool}, default::NTuple{N, Int}, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
@@ -130,7 +130,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
 
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keep::NTuple{N, Bool}, default::NTuple{N, Int}, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
@@ -172,7 +172,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) w
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
 
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, keep::NTuple{N, Bool}, default::NTuple{N, Int}, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
