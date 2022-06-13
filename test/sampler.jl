@@ -40,7 +40,6 @@ end
     end
 end
 
-
 @testset "sampler, equal probability mass" begin
     n_sim = 100
     A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
@@ -73,3 +72,27 @@ end
     @test all(minimum(B, dims=2) .≥ 0)
 end
 
+@testset "num_cat" begin
+    A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+    @test num_cat(A) == 6
+    A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+    @test num_cat(A) == 6
+    A = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+    @test num_cat(A) == 6
+    A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]]
+    @test num_cat(A) == 6
+    # empty cases
+    @test num_cat(Vector{Vector{Int}}()) == 0
+    @test num_cat(Vector{Vector{Vector{Int}}}()) == 0
+    @test num_cat(Vector{Tuple{Vector{Int}, Vector{Float64}}}()) == 0
+    @test num_cat(Vector{Vector{Tuple{Vector{Int}, Vector{Float64}}}}()) == 0
+    # partially empty
+    A = [[1, 2], Int[], [1, 2, 3, 4, 5, 6]]
+    @test num_cat(A) == 6
+    A = [[[1, 2], [1, 2, 3, 4], Int[]]]
+    @test num_cat(A) == 4
+    A = [([1, 2], [0.3, 0.7]), (Int[], Float64[]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+    @test num_cat(A) == 6
+    A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), (Int[], Float64[])]]
+    @test num_cat(A) == 4
+end
