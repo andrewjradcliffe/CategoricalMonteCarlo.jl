@@ -160,12 +160,12 @@ end
 
 # Conveniences
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
-    maximum(a -> maximum(((I, w),) -> maximum(I), a), A)
+    maximum(a -> maximum(((I, w),) -> maximum(I, init=0), a, init=0), A, init=0)
 num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}} ,N} =
-    maximum(((I, w),) -> maximum(I), A)
+    maximum(((I, w),) -> maximum(I, init=0), A, init=0)
 
-num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(maximum, a), A)
-num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(maximum, A)
+num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(x -> maximum(x, init=0), a, init=0), A, init=0)
+num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(x -> maximum(x, init=0), A, init=0)
 
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
