@@ -19,25 +19,25 @@
 
 # The bare minimum for `sample` interface-- covers all 4 other definitions.
 
-sample(::Type{S}, A, num_sim, num_cat; dims=:) where {S} = sample(S, A, num_sim, num_cat, dims)
-sample(::Type{S}, A, num_sim; dims=:) where {S} = sample(S, A, num_sim, num_cat(A), dims)
+sample(::Type{S}, A, n_sim, n_cat; dims=:) where {S} = sample(S, A, n_sim, n_cat, dims)
+sample(::Type{S}, A, n_sim; dims=:) where {S} = sample(S, A, n_sim, num_cat(A), dims)
 
-function sample(::Type{S}, A::AbstractArray{T, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T, N}
+function sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
 
-function sample(::Type{S}, A::AbstractArray{T, N}, num_sim::Int, num_cat::Int, ::Colon) where {S<:Real} where {T, N}
-    B = fill!(similar(A, S, (num_cat, num_sim)), zero(S))
+function sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T, N}
+    B = fill!(similar(A, S, (n_cat, n_sim)), zero(S))
     sample!(B, A)
 end
 
 # The expected case: vectors of sparse vectors (as their bare components)
-function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
@@ -64,9 +64,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector
 end
 
 # A simplification: an array of sparse vectors
-function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
+function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
@@ -94,23 +94,23 @@ end
 # A = rand(2,3,4,5,6);
 # N = ndims(A)
 # dims = (2,3,5)
-# num_cat = 3
-# num_sim = 10
+# n_cat = 3
+# n_sim = 10
 
 # keep = ntuple(d -> d ∉ dims, Val(N))
 # default = ntuple(d -> firstindex(A, d), Val(N))
 
 # Dᴬ = size(A)
-# Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
+# Dᴮ = tuple(n_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., n_sim)
 # B = similar(A, S, Dᴮ);
 # keep_b, default_b = Broadcast.newindexer(B)
 # keep_b[2:end-1] == keep
 
 # Specialized method for eltype(A)::Vector{Vector{Int}}
 # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
-function sample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function sample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, num_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
@@ -133,9 +133,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}
 end
 
 # A simplification: an array of sparse vectors
-function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, num_sim::Int, num_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
+function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
     Dᴬ = size(A)
-    Dᴮ = tuple(num_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., num_sim)
+    Dᴮ = tuple(n_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., n_sim)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
