@@ -33,14 +33,14 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
     Σω = Vector{T}()
-    for IA ∈ CartesianIndices(A)
+    @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, ω) ∈ a
             resize!(Σω, length(ω))
             cumsum!(Σω, ω)
             categorical!(C, U, Σω)
-            for j ∈ axes(B, 2)
+            @simd for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
             end
@@ -65,13 +65,13 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
     Σω = Vector{T}()
-    for IA ∈ CartesianIndices(A)
+    @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ, ω = A[IA]
         resize!(Σω, length(ω))
         cumsum!(Σω, ω)
         categorical!(C, U, Σω)
-        for j ∈ axes(B, 2)
+        @simd for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
         end
@@ -110,12 +110,12 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}
     # default = ntuple(d -> firstindex(A, d), Val(N))
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
-    for IA ∈ CartesianIndices(A)
+    @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             rand!(C, Iₛ)
-            for j ∈ axes(B, 2)
+            @simd for j ∈ axes(B, 2)
                 c = C[j]
                 B[c, j, IR] += one(S)
             end
@@ -138,10 +138,10 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
     # default = ntuple(d -> firstindex(A, d), Val(N))
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
-    for IA ∈ CartesianIndices(A)
+    @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
-        for j ∈ axes(B, 2)
+        @simd for j ∈ axes(B, 2)
             c = rand(Iₛ)
             B[c, j, IR] += one(S)
         end
