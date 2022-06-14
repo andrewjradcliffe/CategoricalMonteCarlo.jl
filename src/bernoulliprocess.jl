@@ -293,7 +293,7 @@ Caller is responsible for ensuring that `∑p = 1`.
     s₀ = Σp[1]
     @inbounds for i ∈ eachindex(C)
         j = 1
-        s = s₀ #Σp[1]
+        s = s₀
         u = rand()
         while s < u && j < k
             s = Σp[j += 1]
@@ -333,7 +333,7 @@ which will ultimately be used to draw samples from the categorical distribution.
     @inbounds for i ∈ eachindex(C, U)
         u = U[i]
         j = 1
-        s = s₀ #Σp[1]
+        s = s₀
         while s < u && j < k
             s = Σp[j += 1]
         end
@@ -357,7 +357,7 @@ end
     @inbounds for i ∈ eachindex(C, U)
         u = U[i]
         j = 1
-        s = s₀ #Σp[1]
+        s = s₀
         while s < u && j < k
             s = Σp[j += 1]
         end
