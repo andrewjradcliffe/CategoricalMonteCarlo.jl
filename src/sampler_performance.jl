@@ -64,7 +64,7 @@ sum(B_8) == sum(B_9) == sum(B_10)
 
 # Examples: unequal probability mass
 A = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
-A = [([1, 1000], [0.3, 0.7]), ([100,200,300,400], [0.2, 0.3, 0.4, 0.1]), ([200, 400, 600, 800, 1000, 900], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+# A = [([1, 1000], [0.3, 0.7]), ([100,200,300,400], [0.2, 0.3, 0.4, 0.1]), ([200, 400, 600, 800, 1000, 900], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
 
 D = fill(A, 100,50,50);
 
@@ -76,18 +76,18 @@ n_sim = 10^3
 dims = (1,2,3)
 @timev B_1 = sample(Int, D, n_sim, num_cat(D), dims);
 @timev sample!(B_1, D);
-@timev sample0!(B_1, D);
+@code_warntype sample!(B_1, D)
+
 @timev B_2 = sample(Int, D′, n_sim, num_cat(D′), dims);
 @timev sample!(B_2, D′);
-@timev sample0!(B_2, D′);
+@code_warntype sample!(B_2, D′)
 
-@timev B_3 = sample(Int, D′, n_sim);
 
-@timev B_1_4 = sample4(Int, D, n_sim, num_cat(D), dims);
-@timev B_2_4 = sample4(Int, D′, n_sim, num_cat(D′), dims);
-sum(B_1) == sum(B_2) == sum(B_1_4) == sum(B_2_4)
-@timev sum(B_1, dims=2);
-@timev sum(B_1_4, dims=1);
+# @timev B_1_4 = sample4(Int, D, n_sim, num_cat(D), dims);
+# @timev B_2_4 = sample4(Int, D′, n_sim, num_cat(D′), dims);
+# sum(B_1) == sum(B_2) == sum(B_1_4) == sum(B_2_4)
+# @timev sum(B_1, dims=2);
+# @timev sum(B_1_4, dims=1);
 
 @timev B_3 = tsample(Int, D, 100000, num_cat(D), (1,2,3));
 @timev B_4 = tsample(Int, D′, 100000, num_cat(D), (1,2,3));
