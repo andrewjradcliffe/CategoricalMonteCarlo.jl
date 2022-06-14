@@ -119,7 +119,8 @@ end
 ################
 # # Specialized method for eltype(A)::Vector{Vector{Int}}
 # # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+# function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
