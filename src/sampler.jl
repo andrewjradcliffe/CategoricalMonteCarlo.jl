@@ -92,7 +92,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
 end
 
 # # The simplest case: a sparse vector
-function sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat}
+function sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_cat, n_sim)
     sample!(B, A)
 end
@@ -156,7 +156,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
 end
 
 # # The simplest case: a sparse vector
-function sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P}
+function sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {N}
     B = zeros(S, n_cat, n_sim)
     sample!(B, A)
 end
