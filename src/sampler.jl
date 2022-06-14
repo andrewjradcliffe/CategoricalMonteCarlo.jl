@@ -124,6 +124,7 @@ function sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::
 end
 
 function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real} where {T<:AbstractFloat}
+    _check_reducedims(B, A)
     Iₛ, ω = A
     k = length(ω)
     Σω = cumsum(ω)
@@ -141,6 +142,7 @@ function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {
     B
 end
 
+################
 # # Specialized method for eltype(A)::Vector{Vector{Int}}
 # # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
@@ -203,6 +205,7 @@ end
 # Oddly, the fastest sampler is non-allocating -- most likely due to
 # the elimination of store + access instructions associated with using a temporary.
 function sample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
+    _check_reducedims(B, A)
     @inbounds for j ∈ axes(B, 2)
         c = rand(A)
         B[c, j] += one(S)

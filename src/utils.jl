@@ -29,3 +29,17 @@ num_cat(A::Vector{Int}) = _maximum_maybe(A)
     end
     true
 end
+
+@noinline function _check_reducedims(B, A::Tuple{Vector{Int}, Vector{<:AbstractFloat}})
+    n_cat = num_cat(A)
+    n_cat′ = length(axes(B, 1))
+    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    true
+end
+
+@noinline function _check_reducedims(B, A::Vector{Int})
+    n_cat = num_cat(A)
+    n_cat′ = length(axes(B, 1))
+    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    true
+end
