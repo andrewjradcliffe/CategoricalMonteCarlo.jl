@@ -36,13 +36,6 @@ function sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Col
 end
 
 # # The expected case: vectors of sparse vectors (as their bare components)
-# function sample(::Type{S}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
-#     Dᴬ = size(A)
-#     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
-#     B = fill!(similar(A, S, Dᴮ), zero(S))
-#     sample!(B, A)
-# end
-
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -85,13 +78,6 @@ function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vecto
 end
 
 # # A simplification: an array of sparse vectors
-# function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
-#     Dᴬ = size(A)
-#     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
-#     B = fill!(similar(A, S, Dᴮ), zero(S))
-#     sample!(B, A)
-# end
-
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -157,13 +143,6 @@ end
 
 # # Specialized method for eltype(A)::Vector{Vector{Int}}
 # # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
-# function sample(::Type{S}, A::AbstractArray{Vector{Vector{Int}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
-#     Dᴬ = size(A)
-#     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
-#     B = fill!(similar(A, S, Dᴮ), zero(S))
-#     sample!(B, A)
-# end
-
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -199,13 +178,6 @@ function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
 end
 
 # # A simplification: an array of sparse vectors
-# function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
-#     Dᴬ = size(A)
-#     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
-#     B = fill!(similar(A, S, Dᴮ), zero(S))
-#     sample!(B, A)
-# end
-
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
