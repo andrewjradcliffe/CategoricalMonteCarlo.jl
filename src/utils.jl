@@ -5,13 +5,18 @@
 #
 ############################################################################################
 # Conveniences
-num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
-    maximum(a -> maximum(((I, w),) -> maximum(I, init=0), a, init=0), A, init=0)
-num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}} ,N} =
-    maximum(((I, w),) -> maximum(I, init=0), A, init=0)
+_maximum_maybe(x::AbstractVector{T}) where {T<:Real} = isempty(x) ? zero(T) : maximum(x)
 
-num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(x -> maximum(x, init=0), a, init=0), A, init=0)
-num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(x -> maximum(x, init=0), A, init=0)
+num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
+    maximum(a -> maximum(((I, w),) -> _maximum_maybe(I), a, init=0), A, init=0)
+num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}} ,N} =
+    maximum(((I, w),) -> _maximum_maybe(I), A, init=0)
+num_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(A[1])
+
+num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} =
+    maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
+num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(_maximum_maybe, A, init=0)
+num_cat(A::Vector{Int}) = _maximum_maybe(A)
 
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
