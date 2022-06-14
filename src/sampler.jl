@@ -65,6 +65,25 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector
     B
 end
 
+function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    Σω = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for (Iₛ, ω) ∈ a
+            resize!(Σω, length(ω))
+            cumsum!(Σω, ω)
+            for j ∈ axes(B, 2)
+                c = rand_invcdf(Σω)
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
 # # A simplification: an array of sparse vectors
 # function sample(::Type{S}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat, N}
 #     Dᴬ = size(A)
@@ -88,6 +107,122 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
+        end
+    end
+    B
+end
+
+
+function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    Σω = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        Iₛ, ω = A[IA]
+        resize!(Σω, length(ω))
+        cumsum!(Σω, ω)
+        for j ∈ axes(B, 2)
+            c = rand_invcdf(Σω)
+            B[Iₛ[c], j, IR] += one(S)
+        end
+    end
+    B
+end
+
+
+# # The simplest case: a sparse vector
+function sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat}
+    B = zeros(S, n_cat, n_sim)
+    sample!(B, A)
+end
+
+function sample!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
+    Iₛ, ω = A
+    k = length(ω)
+    # k == 0 && return B # not really necessary
+    U = rand(size(B, 2))
+    Σω = cumsum(ω)
+    s₀ = Σω[1]
+    @inbounds for j ∈ axes(B, 2)
+        u = U[j]
+        c = 1
+        s = s₀
+        while s < u && c < k
+            c += 1
+            s = Σω[c]
+        end
+        B[Iₛ[c], j] += one(S)
+    end
+    B
+end
+
+function sample0!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
+    Iₛ, ω = A
+    k = length(ω)
+    Σω = cumsum(ω)
+    s₀ = Σω[1]
+    @inbounds for j ∈ axes(B, 2)
+        u = rand()
+        c = 1
+        s = s₀
+        while s < u && c < k
+            c += 1
+            s = Σω[c]
+        end
+        B[Iₛ[c], j] += one(S)
+    end
+    B
+end
+
+@inline function _unsafe_sample!(B::AbstractArray{S}, Iₛ, Σω, U, ax, J, k, s₀) where {S<:Real}
+    @inbounds for i ∈ eachindex(U)
+        j, js = J
+        u = U[i]
+        c = 1
+        s = s₀
+        while s < u && c < k
+            c += 1
+            s = Σω[c]
+        end
+        B[Iₛ[c], j] += one(S)
+        J = iterate(ax, j)
+    end
+    J
+end
+
+# limiting the chunksize of U
+# Other than saving on the memory allocation, this is equivalent speed to the simpler method.
+function sample2!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
+    Iₛ, ω = A
+    Σω = cumsum(ω)
+    k = length(ω)
+    s₀ = Σω[1]
+    q, r = divrem(size(B, 2), 1024)
+    if q == 0
+        U = rand(r)
+        @inbounds for j ∈ axes(B, 2)
+            u = U[j]
+            c = 1
+            s = s₀
+            while s < u && c < k
+                c += 1
+                s = Σω[c]
+            end
+            B[Iₛ[c], j] += one(S)
+        end
+    else
+        U = Vector{Float64}(undef, 1024)
+        ax = axes(B, 2)
+        J = iterate(ax)
+        for _ = 1:q
+            rand!(U)
+            J = _unsafe_sample!(B, Iₛ, Σω, U, ax, J, k, s₀)
+        end
+        if r != 0
+            resize!(U, r)
+            rand!(U)
+            _unsafe_sample!(B, Iₛ, Σω, U, ax, J, k, s₀)
         end
     end
     B
@@ -136,6 +271,22 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}
     B
 end
 
+function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for Iₛ ∈ a
+            for j ∈ axes(B, 2)
+                c = rand(Iₛ)
+                B[c, j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
 # # A simplification: an array of sparse vectors
 # function sample(::Type{S}, A::AbstractArray{Vector{Int}, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {N}
 #     Dᴬ = size(A)
@@ -156,6 +307,22 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
             c = C[j]
             B[c, j, IR] += one(S)
         end
+    end
+    B
+end
+
+# # The simplest case: a sparse vector
+function sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P}
+    B = zeros(S, n_cat, n_sim)
+    sample!(B, A)
+end
+
+# Oddly, the fastest sampler is non-allocating -- most likely due to
+# the elimination of store + access instructions associated with using a temporary.
+function sample!(B::AbstractArray{S, N′}, A::Vector{Int}) where {S<:Real, N′}
+    @inbounds for j ∈ axes(B, 2)
+        c = rand(A)
+        B[c, j] += one(S)
     end
     B
 end
