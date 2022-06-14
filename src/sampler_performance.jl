@@ -135,3 +135,9 @@ sum(B)
 @timev sample!(B, A)
 @timev sample2!(B, A)
 
+################
+A = [1,2]
+B = tsample(Int, A, 10^8);
+@timev tsample!(B, A);
+@timev tsample0!(B, A);
+@timev sample!(B, A);

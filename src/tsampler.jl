@@ -108,7 +108,7 @@ end
 function tsample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     (; start, stop) = 𝒥
     L = stop - start + 1
-    if L ≤ 1024
+    if L ≤ 1048576
         Iₛ, ω = A
         k = length(ω)
         Σω = cumsum(ω)
@@ -197,6 +197,25 @@ function tsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple
     tsample!(B, A)
 end
 
+# # Trivial parallelism is preferable here, but it's not safe!
+# # These are questionable methods (though, the function barrier approach is safe).
+# @inline function _tsample!(B::AbstractMatrix{S}, A::Vector{Int}, j::Int) where {S<:Real}
+#     c = rand(A)
+#     @inbounds B[c, j] += one(S)
+#     B
+# end
+# function tsample0!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
+#     _check_reducedims(B, A)
+#     # @inbounds Threads.@threads for j ∈ axes(B, 2)
+#     #     c = rand(A)
+#     #     B[c, j] += one(S)
+#     # end
+#     @inbounds Threads.@threads for j ∈ axes(B, 2)
+#         _tsample!(B, A, j)
+#     end
+#     B
+# end
+
 function tsample!(B::AbstractMatrix, A::Vector{Int})
     _check_reducedims(B, A)
     tsample!(B, A, firstindex(B, 2):size(B, 2))
@@ -205,7 +224,7 @@ end
 function tsample!(B::AbstractMatrix{S}, A::Vector{Int}, 𝒥::UnitRange{Int}) where {S<:Real}
     (; start, stop) = 𝒥
     L = stop - start + 1
-    if L ≤ 1024
+    if L ≤ 1048576
         @inbounds for j ∈ 𝒥
             c = rand(A)
             B[c, j] += one(S)
