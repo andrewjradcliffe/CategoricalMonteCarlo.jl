@@ -1,5 +1,7 @@
 module CategoricalMonteCarlo
 
-# Write your package code here.
+include("utils.jl")
+include("bernoulliprocess.jl")
+include("sampler.jl")
 
 end
