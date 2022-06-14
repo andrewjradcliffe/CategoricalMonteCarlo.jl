@@ -9,7 +9,7 @@ _maximum_maybe(x::AbstractVector{T}) where {T<:Real} = isempty(x) ? zero(T) : ma
 
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
     maximum(a -> maximum(((I, w),) -> _maximum_maybe(I), a, init=0), A, init=0)
-num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}} ,N} =
+num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
     maximum(((I, w),) -> _maximum_maybe(I), A, init=0)
 num_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(A[1])
 
