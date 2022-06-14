@@ -38,6 +38,7 @@ B_4 = sample_simd(Int, C, 6, 1000);
 using Random
 A′ = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
 A′ = [[1, 1000], [100, 200, 300, 400], [200, 400, 600, 800, 1000, 900]]
+# A′ = [[1, 10], [10, 20, 30, 40], [20, 40, 60, 80, 100, 900]]
 D′ = fill(A′, 100,50,50);
 
 n_sim = 10^3
@@ -74,9 +75,11 @@ D = fill(A, 100,50,50);
 n_sim = 10^3
 dims = (1,2,3)
 @timev B_1 = sample(Int, D, n_sim, num_cat(D), dims);
-@timev B_2 = sample(Int, D′, n_sim, num_cat(D′), dims);
 @timev sample!(B_1, D);
+@timev sample0!(B_1, D);
+@timev B_2 = sample(Int, D′, n_sim, num_cat(D′), dims);
 @timev sample!(B_2, D′);
+@timev sample0!(B_2, D′);
 
 @timev B_3 = sample(Int, D′, n_sim);
 
@@ -98,3 +101,37 @@ function countcategory(A::AbstractArray{T, N}) where {T<:Integer, N}
     end
     v
 end
+
+################################################################
+# Limiting chunksize of U; single sparse vectors.
+
+# Equal probability mass
+A = [1,2,3,4,5,6]
+n_sim = 10^3
+B = sample(Int, A, n_sim, num_cat(A), (1,));
+@benchmark sample!($B, $A)
+@benchmark sample0!($B, $A)
+@benchmark sample2!($B, $A)
+@code_warntype sample!(B, A)
+@code_warntype sample2!(B, A)
+sum(B)
+@timev sample!(B, A)
+@timev sample2!(B, A)
+
+ω = [0.1, 0.1, 0.1, 0.1,0.1, 0.5]
+Σω = cumsum(ω)
+
+# Unequal probability mass
+A = ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
+# A = ([1,2,3,4,5,6], [0.1, 0.25, 0.05, 0.25,0.15, 0.2])
+n_sim = 10^3
+B = sample(Int, A, n_sim, num_cat(A), (1,));
+@benchmark sample!($B, $A)
+@benchmark sample0!($B, $A)
+@benchmark sample2!($B, $A)
+@code_warntype sample!(B, A)
+@code_warntype sample2!(B, A)
+sum(B)
+@timev sample!(B, A)
+@timev sample2!(B, A)
+
