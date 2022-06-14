@@ -265,6 +265,15 @@ end
     j
 end
 
+@inline function invcdf(Σω::AbstractVector{T}, u::Real, k::Int) where {T<:Real}
+    j = 1
+    s = Σω[1]
+    @inbounds while s < u && j < k
+        s = Σω[j += 1]
+    end
+    j
+end
+
 # @inline function categorical(p::AbstractVector{T}, Iₛ::Vector{Int}) where {T<:Real}
 #     k = length(p)
 #     j = 1
