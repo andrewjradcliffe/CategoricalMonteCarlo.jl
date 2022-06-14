@@ -140,26 +140,6 @@ end
 function sample!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
     Iₛ, ω = A
     k = length(ω)
-    # k == 0 && return B # not really necessary
-    U = rand(size(B, 2))
-    Σω = cumsum(ω)
-    s₀ = Σω[1]
-    @inbounds for j ∈ axes(B, 2)
-        u = U[j]
-        c = 1
-        s = s₀
-        while s < u && c < k
-            c += 1
-            s = Σω[c]
-        end
-        B[Iₛ[c], j] += one(S)
-    end
-    B
-end
-
-function sample0!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
-    Iₛ, ω = A
-    k = length(ω)
     Σω = cumsum(ω)
     s₀ = Σω[1]
     @inbounds for j ∈ axes(B, 2)
@@ -174,22 +154,6 @@ function sample0!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) w
     end
     B
 end
-
-# # A simple check
-# A = rand(2,3,4,5,6);
-# N = ndims(A)
-# dims = (2,3,5)
-# n_cat = 3
-# n_sim = 10
-
-# keep = ntuple(d -> d ∉ dims, Val(N))
-# default = ntuple(d -> firstindex(A, d), Val(N))
-
-# Dᴬ = size(A)
-# Dᴮ = tuple(n_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))..., n_sim)
-# B = similar(A, S, Dᴮ);
-# keep_b, default_b = Broadcast.newindexer(B)
-# keep_b[2:end-1] == keep
 
 # # Specialized method for eltype(A)::Vector{Vector{Int}}
 # # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
