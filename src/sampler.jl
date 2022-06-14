@@ -123,7 +123,7 @@ function sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::
     sample!(B, A)
 end
 
-function sample!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
+function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real} where {T<:AbstractFloat}
     Iₛ, ω = A
     k = length(ω)
     Σω = cumsum(ω)
@@ -202,7 +202,7 @@ end
 
 # Oddly, the fastest sampler is non-allocating -- most likely due to
 # the elimination of store + access instructions associated with using a temporary.
-function sample!(B::AbstractArray{S, N′}, A::Vector{Int}) where {S<:Real, N′}
+function sample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
     @inbounds for j ∈ axes(B, 2)
         c = rand(A)
         B[c, j] += one(S)
