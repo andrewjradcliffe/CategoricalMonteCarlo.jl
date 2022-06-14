@@ -94,7 +94,45 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int},
     end
 end
 
+# # The simplest case: a sparse vector
+function tsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims) where {S<:Real} where {T<:AbstractFloat}
+    B = zeros(S, n_cat, n_sim)
+    tsample!(B, A)
+end
 
+function tsample!(B::AbstractMatrix, A::Tuple{Vector{Int}, Vector{<:AbstractFloat}})
+    _check_reducedims(B, A)
+    tsample!(B, A, firstindex(B, 2):size(B, 2))
+end
+
+function tsample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    (; start, stop) = 𝒥
+    L = stop - start + 1
+    if L ≤ 1024
+        Iₛ, ω = A
+        k = length(ω)
+        Σω = cumsum(ω)
+        s₀ = Σω[1]
+        @inbounds for j ∈ 𝒥
+            u = rand()
+            c = 1
+            s = s₀
+            while s < u && c < k
+                c += 1
+                s = Σω[c]
+            end
+            B[Iₛ[c], j] += one(S)
+        end
+        return B
+    else
+        h = (start + stop) >> 1
+        @sync begin
+            Threads.@spawn tsample!(B, A, start:h)
+            tsample!(B, A, (h + 1):stop)
+        end
+        return B
+    end
+end
 
 # # Specialized method for eltype(A)::Vector{Vector{Int}}
 # # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
@@ -148,6 +186,36 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, k
         @sync begin
             Threads.@spawn tsample!(B, A, keep, default, start:h)
             tsample!(B, A, keep, default, (h + 1):stop)
+        end
+        return B
+    end
+end
+
+# # The simplest case: a sparse vector
+function tsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {N}
+    B = zeros(S, n_cat, n_sim)
+    tsample!(B, A)
+end
+
+function tsample!(B::AbstractMatrix, A::Vector{Int})
+    _check_reducedims(B, A)
+    tsample!(B, A, firstindex(B, 2):size(B, 2))
+end
+
+function tsample!(B::AbstractMatrix{S}, A::Vector{Int}, 𝒥::UnitRange{Int}) where {S<:Real}
+    (; start, stop) = 𝒥
+    L = stop - start + 1
+    if L ≤ 1024
+        @inbounds for j ∈ 𝒥
+            c = rand(A)
+            B[c, j] += one(S)
+        end
+        return B
+    else
+        h = (start + stop) >> 1
+        @sync begin
+            Threads.@spawn tsample!(B, A, start:h)
+            tsample!(B, A, (h + 1):stop)
         end
         return B
     end
