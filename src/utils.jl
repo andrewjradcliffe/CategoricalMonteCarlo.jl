@@ -13,8 +13,7 @@ num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFl
     maximum(((I, w),) -> _maximum_maybe(I), A, init=0)
 num_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(A[1])
 
-num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} =
-    maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
+num_cat(A::AbstractArray{Vector{Vector{Int}}, N}) where {N} = maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(_maximum_maybe, A, init=0)
 num_cat(A::Vector{Int}) = _maximum_maybe(A)
 
