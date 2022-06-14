@@ -244,6 +244,48 @@ See also: [`categorical!`](@ref)
     return j
 end
 
+@inline function rand_invcdf(Σω::AbstractVector{T}) where {T<:Real}
+    k = length(Σω)
+    j = 1
+    s = Σω[1]
+    u = rand()
+    @inbounds while s < u && j < k
+        j += 1
+        s = Σω[j]
+    end
+    j
+end
+@inline function invcdf(Σω::AbstractVector{T}, u::Real) where {T<:Real}
+    k = length(Σω)
+    j = 1
+    s = Σω[1]
+    @inbounds while s < u && j < k
+        # j += 1
+        # s = Σω[j]
+        s = Σω[j += 1]
+    end
+    j
+end
+@inline rand_invcdf2(Σω) = invcdf(Σω, rand())
+
+@inline function invcdf4(Σω::AbstractVector{T}, u::Real) where {T<:Real}
+    k = length(Σω)
+    j = 0
+    # s = Σω[1]
+    s = zero(T)
+    @inbounds while true
+        j == k && break
+        # j += 1
+        # s = Σω[j]
+        s = Σω[j += 1]
+        s ≥ u && return j
+    end
+    j
+end
+
+@inline rand_invcdf4(Σω) = invcdf4(Σω, rand())
+
+
 # @inline function categorical(p::AbstractVector{T}, Iₛ::Vector{Int}) where {T<:Real}
 #     k = length(p)
 #     j = 1
@@ -269,9 +311,10 @@ Caller is responsible for ensuring that `∑p = 1`.
 @inline function categorical!(C::AbstractArray{S, N}, p::AbstractVector{T}) where {T<:Real} where {S<:Integer, N}
     k = length(p)
     Σp = cumsum(p)
+    s₀ = Σp[1]
     @inbounds for i ∈ eachindex(C)
         j = 1
-        s = Σp[1]
+        s = s₀ #Σp[1]
         u = rand()
         while s < u && j < k
             s = Σp[j += 1]
@@ -307,10 +350,11 @@ which will ultimately be used to draw samples from the categorical distribution.
 @inline function categorical!(C::AbstractArray{S, N}, U::AbstractArray{T, N}, Σp::AbstractVector{T}) where {T<:AbstractFloat} where {N} where {S<:Integer}
     k = length(Σp)
     rand!(U)
+    s₀ = Σp[1]
     @inbounds for i ∈ eachindex(C, U)
         u = U[i]
         j = 1
-        s = Σp[1]
+        s = s₀ #Σp[1]
         while s < u && j < k
             s = Σp[j += 1]
         end
@@ -330,10 +374,11 @@ end
     resize!(Σp, k)
     cumsum!(Σp, p)
     rand!(U)
+    s₀ = Σp[1]
     @inbounds for i ∈ eachindex(C, U)
         u = U[i]
         j = 1
-        s = Σp[1]
+        s = s₀ #Σp[1]
         while s < u && j < k
             s = Σp[j += 1]
         end
