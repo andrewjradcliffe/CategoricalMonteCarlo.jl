@@ -163,7 +163,7 @@ function sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{
 end
 
 # Oddly, the fastest sampler is non-allocating -- most likely due to
-# the elimination of store + access instructions associated with using a temporary.
+# the elimination of store + access instructions associated with using a temporary array.
 function sample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
     _check_reducedims(B, A)
     @inbounds for j ∈ axes(B, 2)
