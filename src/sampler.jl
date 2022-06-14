@@ -58,24 +58,6 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector
     B
 end
 
-function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
-    _check_reducedims(B, A)
-    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    Σω = Vector{T}()
-    @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keep, default)
-        a = A[IA]
-        for (Iₛ, ω) ∈ a
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            for j ∈ axes(B, 2)
-                c = rand_invcdf(Σω)
-                B[Iₛ[c], j, IR] += one(S)
-            end
-        end
-    end
-    B
-end
 
 # # A simplification: an array of sparse vectors
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
@@ -97,25 +79,6 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     end
     B
 end
-
-
-function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
-    _check_reducedims(B, A)
-    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    Σω = Vector{T}()
-    @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keep, default)
-        Iₛ, ω = A[IA]
-        resize!(Σω, length(ω))
-        cumsum!(Σω, ω)
-        for j ∈ axes(B, 2)
-            c = rand_invcdf(Σω)
-            B[Iₛ[c], j, IR] += one(S)
-        end
-    end
-    B
-end
-
 
 # # The simplest case: a sparse vector
 function sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T<:AbstractFloat}
@@ -156,22 +119,6 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}
             rand!(C, Iₛ)
             for j ∈ axes(B, 2)
                 c = C[j]
-                B[c, j, IR] += one(S)
-            end
-        end
-    end
-    B
-end
-
-function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
-    _check_reducedims(B, A)
-    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    @inbounds for IA ∈ CartesianIndices(A)
-        IR = Broadcast.newindex(IA, keep, default)
-        a = A[IA]
-        for Iₛ ∈ a
-            for j ∈ axes(B, 2)
-                c = rand(Iₛ)
                 B[c, j, IR] += one(S)
             end
         end

@@ -317,6 +317,70 @@ function sample4!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}
     B
 end
 
+################
+# Non-allocating versions
+
+# Oddly, the performance of the non-allocating variants differs on the
+# array of vector / array of array of vector cases (compared to the single sparse vector case).
+# As the arrays become large, O(10^4), for the Vector{Int} cases,
+# the temporary array is faster by 20-25%. For the Tuple{Vector{Int}, Vector{<:AbstractFloat}}
+# case, the temporary array is 10% slower.
+# This needs more extensive benchmarking to determine which is optimal -- the answer
+# very likely depends on the scale of the problem (n_sim and n_cat) and very likely
+# the distributions of probability mass (more uniform being worse?).
+
+function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    Σω = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for (Iₛ, ω) ∈ a
+            resize!(Σω, length(ω))
+            cumsum!(Σω, ω)
+            for j ∈ axes(B, 2)
+                c = rand_invcdf(Σω)
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    Σω = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        Iₛ, ω = A[IA]
+        resize!(Σω, length(ω))
+        cumsum!(Σω, ω)
+        for j ∈ axes(B, 2)
+            c = rand_invcdf(Σω)
+            B[Iₛ[c], j, IR] += one(S)
+        end
+    end
+    B
+end
+
+function sample0!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for Iₛ ∈ a
+            for j ∈ axes(B, 2)
+                c = rand(Iₛ)
+                B[c, j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
 
 ################
 # Reference sampler which is as simple as possible.
