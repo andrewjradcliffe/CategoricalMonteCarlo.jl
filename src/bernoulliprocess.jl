@@ -260,31 +260,10 @@ end
     j = 1
     s = Σω[1]
     @inbounds while s < u && j < k
-        # j += 1
-        # s = Σω[j]
         s = Σω[j += 1]
     end
     j
 end
-@inline rand_invcdf2(Σω) = invcdf(Σω, rand())
-
-@inline function invcdf4(Σω::AbstractVector{T}, u::Real) where {T<:Real}
-    k = length(Σω)
-    j = 0
-    # s = Σω[1]
-    s = zero(T)
-    @inbounds while true
-        j == k && break
-        # j += 1
-        # s = Σω[j]
-        s = Σω[j += 1]
-        s ≥ u && return j
-    end
-    j
-end
-
-@inline rand_invcdf4(Σω) = invcdf4(Σω, rand())
-
 
 # @inline function categorical(p::AbstractVector{T}, Iₛ::Vector{Int}) where {T<:Real}
 #     k = length(p)
