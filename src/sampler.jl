@@ -175,59 +175,6 @@ function sample0!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) w
     B
 end
 
-@inline function _unsafe_sample!(B::AbstractArray{S}, Iₛ, Σω, U, ax, J, k, s₀) where {S<:Real}
-    @inbounds for i ∈ eachindex(U)
-        j, js = J
-        u = U[i]
-        c = 1
-        s = s₀
-        while s < u && c < k
-            c += 1
-            s = Σω[c]
-        end
-        B[Iₛ[c], j] += one(S)
-        J = iterate(ax, j)
-    end
-    J
-end
-
-# limiting the chunksize of U
-# Other than saving on the memory allocation, this is equivalent speed to the simpler method.
-function sample2!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
-    Iₛ, ω = A
-    Σω = cumsum(ω)
-    k = length(ω)
-    s₀ = Σω[1]
-    q, r = divrem(size(B, 2), 1024)
-    if q == 0
-        U = rand(r)
-        @inbounds for j ∈ axes(B, 2)
-            u = U[j]
-            c = 1
-            s = s₀
-            while s < u && c < k
-                c += 1
-                s = Σω[c]
-            end
-            B[Iₛ[c], j] += one(S)
-        end
-    else
-        U = Vector{Float64}(undef, 1024)
-        ax = axes(B, 2)
-        J = iterate(ax)
-        for _ = 1:q
-            rand!(U)
-            J = _unsafe_sample!(B, Iₛ, Σω, U, ax, J, k, s₀)
-        end
-        if r != 0
-            resize!(U, r)
-            rand!(U)
-            _unsafe_sample!(B, Iₛ, Σω, U, ax, J, k, s₀)
-        end
-    end
-    B
-end
-
 # # A simple check
 # A = rand(2,3,4,5,6);
 # N = ndims(A)
