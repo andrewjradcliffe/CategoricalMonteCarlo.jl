@@ -20,13 +20,13 @@
                 # # The simplest case: a sparse vector
                 A = [1,2,3,4,5,6]
                 B = sample(Int, A, n_sim, dims=region)
-                @test all(==(1), sum(B, dims=(1,3)))
+                @test all(==(1), sum(B, dims=1))
                 A = [1,2,3,4]
                 sample!(B, A)
-                @test all(==(2), sum(B, dims=(1,3)))
+                @test all(==(2), sum(B, dims=1))
                 A = [1,2]
                 sample!(B, A)
-                @test all(==(3), sum(B, dims=(1,3)))
+                @test all(==(3), sum(B, dims=1))
                 @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
                 @test all(≥(0), minimum(B, dims=2))
             end
@@ -54,13 +54,13 @@ end
                 # # The simplest case: a sparse vector
                 A = ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
                 B = sample(Int, A, n_sim, dims=region)
-                @test all(==(1), sum(B, dims=(1,3)))
+                @test all(==(1), sum(B, dims=1))
                 A = ([1,2,3,4], [0.2, 0.3, 0.4, 0.1])
                 sample!(B, A)
-                @test all(==(2), sum(B, dims=(1,3)))
+                @test all(==(2), sum(B, dims=1))
                 A = ([1, 2], [0.3, 0.7])
                 sample!(B, A)
-                @test all(==(3), sum(B, dims=(1,3)))
+                @test all(==(3), sum(B, dims=1))
                 @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
                 @test all(≥(0), minimum(B, dims=2))
             end
