@@ -383,6 +383,171 @@ end
 
 
 ################
+# Limiting chunksize
+
+# The smaller chunksize approach actually performs ≈5-8% worse for both
+# the equiprobable and nonequiprobable cases.
+function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Tuple{Vector{Int}, Vector{T}}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    Σω = Vector{T}()
+    q, r = divrem(size(B, 2), 1024)
+    if q == 0
+        C = Vector{Int}(undef, r)
+        U = Vector{Float64}(undef, r)
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keep, default)
+            a = A[IA]
+            for (Iₛ, ω) ∈ a
+                resize!(Σω, length(ω))
+                cumsum!(Σω, ω)
+                categorical!(C, U, Σω)
+                for j ∈ axes(B, 2)
+                    c = C[j]
+                    B[Iₛ[c], j, IR] += one(S)
+                end
+            end
+        end
+    else
+        C = Vector{Int}(undef, 1024)
+        U = Vector{Float64}(undef, 1024)
+        ax = axes(B, 2)
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keep, default)
+            a = A[IA]
+            for (Iₛ, ω) ∈ a
+                resize!(C, 1024)
+                resize!(U, 1024)
+                resize!(Σω, length(ω))
+                cumsum!(Σω, ω)
+                J = iterate(ax)
+                for _ = 1:q
+                    categorical!(C, U, Σω)
+                    for c ∈ C
+                        j, js = J
+                        B[Iₛ[c], j, IR] += one(S)
+                        J = iterate(ax, j)
+                    end
+                end
+                if r != 0
+                    resize!(C, r)
+                    resize!(U, r)
+                    categorical!(C, U, Σω)
+                    for c ∈ C
+                        j, js = J
+                        B[Iₛ[c], j, IR] += one(S)
+                        J = iterate(ax, j)
+                    end
+                end
+            end
+        end
+    end
+    B
+end
+
+function sample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Vector{Int}}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    q, r = divrem(size(B, 2), 1024)
+    if q == 0
+        C = Vector{Int}(undef, r)
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keep, default)
+            a = A[IA]
+            for Iₛ ∈ a
+                rand!(C, Iₛ)
+                for j ∈ axes(B, 2)
+                    c = C[j]
+                    B[c, j, IR] += one(S)
+                end
+            end
+        end
+    else
+        C = Vector{Int}(undef, 1024)
+        ax = axes(B, 2)
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keep, default)
+            a = A[IA]
+            for Iₛ ∈ a
+                resize!(C, 1024)
+                J = iterate(ax)
+                for _ = 1:q
+                    rand!(C, Iₛ)
+                    for c ∈ C
+                        j, js = J
+                        B[c, j, IR] += one(S)
+                        J = iterate(ax, j)
+                    end
+                end
+                if r != 0
+                    resize!(C, r)
+                    rand!(C, Iₛ)
+                    for c ∈ C
+                        j, js = J
+                        B[c, j, IR] += one(S)
+                        J = iterate(ax, j)
+                    end
+                end
+            end
+        end
+    end
+    B
+end
+
+@inline function _unsafe_sample!(B::AbstractArray{S}, Iₛ, Σω, U, ax, J, k, s₀) where {S<:Real}
+    @inbounds for i ∈ eachindex(U)
+        j, js = J
+        u = U[i]
+        c = 1
+        s = s₀
+        while s < u && c < k
+            c += 1
+            s = Σω[c]
+        end
+        B[Iₛ[c], j] += one(S)
+        J = iterate(ax, j)
+    end
+    J
+end
+
+# limiting the chunksize of U
+# Other than saving on the memory allocation, this is equivalent speed to the simpler method.
+function sample2!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real, N′} where {T<:AbstractFloat}
+    Iₛ, ω = A
+    Σω = cumsum(ω)
+    k = length(ω)
+    s₀ = Σω[1]
+    q, r = divrem(size(B, 2), 1024)
+    if q == 0
+        U = rand(r)
+        @inbounds for j ∈ axes(B, 2)
+            u = U[j]
+            c = 1
+            s = s₀
+            while s < u && c < k
+                c += 1
+                s = Σω[c]
+            end
+            B[Iₛ[c], j] += one(S)
+        end
+    else
+        U = Vector{Float64}(undef, 1024)
+        ax = axes(B, 2)
+        J = iterate(ax)
+        for _ = 1:q
+            rand!(U)
+            J = _unsafe_sample!(B, Iₛ, Σω, U, ax, J, k, s₀)
+        end
+        if r != 0
+            resize!(U, r)
+            rand!(U)
+            _unsafe_sample!(B, Iₛ, Σω, U, ax, J, k, s₀)
+        end
+    end
+    B
+end
+
+################
 # Reference sampler which is as simple as possible.
 function sample_simd!(B::Matrix{T}, A::Vector{Vector{Int}}) where {T<:Real}
     c = Vector{Int}(undef, size(B, 2))

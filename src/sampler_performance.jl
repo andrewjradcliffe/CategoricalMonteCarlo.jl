@@ -141,3 +141,22 @@ B = tsample(Int, A, 10^8);
 @timev tsample!(B, A);
 @timev tsample0!(B, A);
 @timev sample!(B, A);
+
+#### limiting chunksize, larger arrays
+# Z = [[rand(1:1000, 5) for _ = 1:3] for _ = 1:50, _ = 1:50, _ = 1:50, _ = 1:10];
+A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+Z = fill(A, 100,50,50);
+n_sim = 10^4
+@timev B = sample(Int, Z, n_sim, dims=(1,2,3));
+# The smaller chunksize approach actually performs ≈5-8% worse.
+@timev sample!(B, Z);
+@timev sample2!(B, Z);
+
+
+A = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+Z = fill(A, 100,50,50);
+n_sim = 10^4
+# The smaller chunksize approach actually performs ≈5-8% worse. -- true again for nonequiprobable
+@timev B = sample(Int, Z, n_sim, dims=(1,2,3));
+@timev sample!(B, Z);
+@timev sample2!(B, Z);
