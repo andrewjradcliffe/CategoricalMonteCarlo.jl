@@ -101,7 +101,6 @@ Create a vector of probabilities by normalizing the weights selected by `I` from
 See also: [`normweights!`](@ref)
 """
 normweights(I::Vector{Int}, w::Vector{<:Real}) = normweights!(similar(I, _typeofinv(first(w))), I, w)
-# Or, just promote_type(T, Float64)?
 
 
 
