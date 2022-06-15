@@ -6,6 +6,57 @@
 ############################################################################################
 
 """
+    normalize1!(A::AbstractArray{<:Real})
+
+Normalize the values in `A` such that `sum(A) ≈ 1` and `0 ≤ A[i] ≤ 1` ∀i.
+It is assumed that `A[i] ≥ 0 ∀i`. This is not quite the L¹-norm, which would
+require that `abs(A[i])` be used.
+
+See also: [`normalize1`](@ref)
+"""
+function normalize1!(A::AbstractArray{T}) where {T<:Real}
+    s = zero(T)
+    @inbounds @simd for i ∈ eachindex(A)
+        s += A[i]
+    end
+    c = inv(s)
+    @inbounds @simd for i ∈ eachindex(A)
+        A[i] *= c
+    end
+    A
+end
+
+"""
+    normalize1!(B::AbstractArray{<:Real}, A::AbstractArray{<:Real})
+
+Normalize the values in `A` such that `sum(B) ≈ 1` and `0 ≤ B[i] ≤ 1` ∀i, storing
+the result in `B`. It is assumed that `A[i] ≥ 0` ∀i.
+"""
+function normalize1!(B::AbstractArray{T}, A::AbstractArray{S}) where {T<:Real, S<:Real}
+    s = zero(S)
+    @inbounds @simd for i ∈ eachindex(A)
+        s += A[i]
+    end
+    c = inv(s)
+    @inbounds @simd for i ∈ eachindex(A, B)
+        B[i] = A[i] * c
+    end
+    B
+end
+
+"""
+    normalize1(A::AbstractArray{<:Real})
+
+Return an array of equal size which satisfies `sum(B) ≈ 1` and `0 ≤ B[i] 1` ∀i.
+It is assumed that `A[i] ≥ 0` ∀i.
+
+See also: [`normalize1!`](@ref)
+"""
+normalize1(A::AbstractArray{T}) where {T<:Real} = normalize1!(similar(A, promote_type(T, Float64)), A)
+
+################
+
+"""
     normweights!(p::Vector{S}, w::Vector{T}, I::Vector{Int}) where {T<:Real, S<:AbstractFloat}
 
 Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
@@ -136,51 +187,70 @@ end
 normweights(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
     normweights!(similar(p, promote_type(T, S)), p, u)
 
-# This is not quite the L¹-norm, which would require that abs(A[i]) be used.
-"""
-    normalize1!(A::AbstractArray{<:Real})
 
-Normalize the values in `A` such that `sum(A) ≈ 1` and `0 ≤ A[i] 1` ∀i.
-It is assumed that `A[i] ≥ 0 ∀i`.
 
-See also: [`normalize1`](@ref)
-"""
-function normalize1!(A::AbstractArray{T}) where {T<:Real}
-    s = zero(promote_type(T, Float64))
-    @inbounds @simd ivdep for i ∈ eachindex(A)
-        s += A[i]
+
+
+# A weight is assigned to each i, and the w₁'s are normalized to probabilities.
+# Then, a subset of the i's, denoted I′, is selected for re-weighting by a quantity
+# which is undefined for I ∖ I′.
+# w₁ ∈ ℝᴰ : the weight assigned to each i for the normalization of probabilities
+# w₂ ∈ ℝᴺ : the quantity which is undefined for I ∖ I′; undefined shall be encoded
+# by a value of zero.
+# pᵢ = w₁ᵢ / ∑ₗ₌₁ᴺ w₁ₗ, i ∈ I ∖ I′
+# mᵏⁿᵒʷⁿ = ∑ᵢ pᵢ, i ∈ ∈ I ∖ I′
+# mᵘⁿᵈᵉᶠⁱⁿᵉᵈ = 1 - mᵏⁿᵒʷⁿ = (∑ᵢ w₁ᵢ, i ∈ I′) / ∑ₗ₌₁ᴺ w₁ₗ
+# pᵢ = mᵘⁿᵈᵉᶠⁱⁿᵉᵈ * w₂ᵢ / ∑ₗ₌₁ᴺ w₂ₗ, i ∈ I′
+# In other words,
+# pᵢ = (w₂ᵢ * ∑ₗ w₁ₗ, i ∈ I ∖ I′) / (∑ₗ₌₁ᴺ w₂ₗ * ∑ₗ₌₁ᴺ w₁ₗ)
+
+function reweight!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
+    s₁′ = zero(T)
+    s₁ = zero(T)
+    s₂ = zero(U)
+    @inbounds @simd for i ∈ eachindex(w₁, w₂)
+        w₁ᵢ = w₁[i]
+        w₂ᵢ = w₂[i]
+        s₁′ += w₂ᵢ == zero(U) ? zero(T) : w₁ᵢ
+        s₁ += w₁ᵢ
+        s₂ += w₂ᵢ
     end
-    c = inv(s)
-    @inbounds @simd ivdep for i ∈ eachindex(A)
-        A[i] *= c
+    c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
+    c₂ = s₁′ * c₁ / s₂
+    @inbounds @simd for i ∈ eachindex(w₁, w₂)
+        w₁ᵢ = w₁[i]
+        w₂ᵢ = w₂[i]
+        w₁[i] = w₂ᵢ == zero(U) ? c₁ * w₁ᵢ : c₂ * w₂ᵢ
     end
-    A
+    w₁
 end
 
-"""
-    normalize1!(B::AbstractArray{<:Real}, A::AbstractArray{<:Real})
-
-Normalize the values in `A` such that `sum(B) ≈ 1` and `0 ≤ B[i] 1` ∀i, storing
-the result in `B`. It is assumed that `A[i] ≥ 0` ∀i.
-"""
-function normalize1!(B::AbstractArray{T}, A::AbstractArray{S}) where {T<:AbstractFloat, S<:Real}
-    s = zero(promote_type(T, Float64))
-    @inbounds @simd ivdep for i ∈ eachindex(A)
-        s += A[i]
+function reweight!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:AbstractFloat, T<:Real, U<:Real}
+    s₁′ = zero(T)
+    s₁ = zero(T)
+    s₂ = zero(U)
+    @inbounds @simd for i ∈ eachindex(w₁, w₂)
+        w₁ᵢ = w₁[i]
+        w₂ᵢ = w₂[i]
+        s₁′ += w₂ᵢ == zero(U) ? zero(T) : w₁ᵢ
+        s₁ += w₁ᵢ
+        s₂ += w₂ᵢ
     end
-    c = inv(s)
-    @inbounds @simd ivdep for i ∈ eachindex(A, B)
-        B[i] = A[i] * c
+    # This covers an odd case, wherein w₁ consists of all zeros.
+    # Naturally, there is not a clear definition for what the resultant probabilities
+    # should be -- all zero, or 1/length(w₁)? this leans in favor of all zero.
+    # s₁ = s₁ == zero(T) ? one(T) : s₁
+    # c₁ = inv(s₁)
+    # c₂ = s₁′ / (s₁ * s₂)
+    c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
+    c₂ = s₁′ * c₁ / s₂
+    @inbounds @simd for i ∈ eachindex(w₁, w₂)
+        w₁ᵢ = w₁[i]
+        w₂ᵢ = w₂[i]
+        p[i] = w₂ᵢ == zero(U) ? c₁ * w₁ᵢ : c₂ * w₂ᵢ
     end
-    B
+    p
 end
 
-"""
-    normalize1(A::AbstractArray{<:Real})
-
-Return an array of equal size which satisfies `sum(B) ≈ 1` and `0 ≤ B[i] 1` ∀i.
-It is assumed that `A[i] ≥ 0` ∀i.
-
-See also: [`normalize1!`](@ref)
-"""
-normalize1(A::AbstractArray{T}) where {T<:Real} = normalize1!(similar(A, promote_type(T, Float64)), A)
+reweight(w₁::Vector{T}, w₂::Vector{U}) where {T<:Real, U<:Real} =
+    reweight!(similar(w₁, promote_type(T, U, Float64)), w₁, w₂)
