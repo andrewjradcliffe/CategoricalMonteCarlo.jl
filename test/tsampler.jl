@@ -48,6 +48,9 @@
             @test_throws MethodError tsample(Complex{T}, A, n_sim)
         end
         @test_throws InexactError tsample(Bool, A, n_sim)
+        @test_throws MethodError tsample(Union{Int16, Int32}, A, n_sim)
+        B = Matrix{Union{Int16,Int32}}(undef, 6, 10)
+        @test_throws MethodError tsample!(B, A)
     end
 end
 
@@ -99,6 +102,9 @@ end
             @test_throws MethodError tsample(Complex{T}, A, n_sim)
         end
         @test_throws InexactError tsample(Bool, A, n_sim)
+        @test_throws MethodError tsample(Union{Int16, Int32}, A, n_sim)
+        B = Matrix{Union{Int16,Int32}}(undef, 6, 10)
+        @test_throws MethodError tsample!(B, A)
     end
 end
 
