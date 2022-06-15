@@ -1,5 +1,59 @@
 # Tests of normalization methods
 
+@testset "algorithm 3" begin
+    w = [0.0, 10.0, 5.0, 0.0, 2.5]
+    p = [0.25, 0.2857142857142857, 0.14285714285714285, 0.25, 0.07142857142857142]
+    p′ = algorithm3(w, 0.5)
+    @test sum(p′) ≈ 1.0
+    @test p ≈ p′
+    @test algorithm3(w, 1.0) == [0.5, 0.0, 0.0, 0.5, 0.0]
+    # u not 0 ≤ u ≤ 1
+    p = [0.75, -0.2857142857142857, -0.14285714285714285, 0.75, -0.07142857142857142]
+    p′ = algorithm3(w, 1.5)
+    @test p ≈ p′
+    @test sum(p′) ≈ 1.0
+    # throws where appropriate
+    @test_throws DimensionMismatch algorithm3!(p, zeros(6), 0.5)
+    @test_throws DimensionMismatch algorithm3!(zeros(6), p, 0.5)
+
+    @testset "algorithm 3, sweep precision (SIMD rounding)" begin
+        rng = Xoshiro(1234)
+        w = rand(rng, 256)
+        w[rand(rng, 1:256, 64)] .= 0
+        x = copyto!(similar(w), w)
+        p = similar(w)
+        for u = 0.0:.000001:0.999999
+            w .= x .* u
+            algorithm3!(p, w, u)
+            @test all(!iszero, p)
+            @test sum(p) ≈ 1.0
+        end
+        # When u = 1.0, all non-zero elements become zero
+        u = 1.0
+        w .= x .* u
+        algorithm3!(p, w, u)
+        @test count(iszero, p) == 197 # PRNG initialized as above gives 59 non-zeros
+        @test sum(p) ≈ 1.0
+        # When u = 0.0, all non-zero elements are normalized but zero elements remain same
+        u = 0.0
+        w .= x
+        algorithm3!(p, w, u)
+        @test count(iszero, p) == 59
+        @test sum(p) ≈ 1.0
+        # Large values -- sensitive to very small u's around 1e-6
+        for u = 0.0001:0.0001:0.9999
+            for i = 1:20
+                n = 1 << i
+                w .= x .* n
+                algorithm3!(p, w, u)
+                @test all(!iszero, p)
+                @test sum(p) ≈ 1.0
+            end
+        end
+    end
+end
+
+
 @testset "normalizations, 0 unchanged component" begin
     I′ = [1, 2, 3, 4, 5]
     w = [2, 1, 3, 4, 5]
