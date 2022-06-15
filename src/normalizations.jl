@@ -145,7 +145,7 @@ julia> algorithm3!([0.0, 0.0, 0.0], 0.5)           # fill with 1 / length
  0.3333333333333333
  0.3333333333333333
 
-julia> algorithm3!([0.0, 0.0], 0.0)                # fill with 1 / length even if zero mass
+julia> algorithm3!([0.0, 0.0], 0.0)                # fill with 1 / length, even if zero mass
 2-element Vector{Float64}:
  0.5
  0.5
