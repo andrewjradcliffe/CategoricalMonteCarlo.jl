@@ -16,6 +16,46 @@
     @test_throws DimensionMismatch algorithm3!(p, zeros(6), 0.5)
     @test_throws DimensionMismatch algorithm3!(zeros(6), p, 0.5)
 
+    @testset "NaN handling (lack thereof)" begin
+        # things which generate NaNs
+        w = [0.0, 10.0, 5.0, 0.0, NaN]
+        p = [0.25, NaN, NaN, 0.25, NaN]
+        p′ = algorithm3(w, 0.5)
+        @test isequal(p′, p)
+        @test p′[1] + p′[4] == 0.5
+
+        w = [1.0, 2.0, 3.0, NaN]
+        p′ = algorithm3(w, 0.5)
+        @test isequal(p′, fill(NaN, 4))
+    end
+    @testset "±Inf handling (lack thereof)" begin
+        w = [0.0, 10.0, 5.0, 0.0, Inf]
+        p = [0.25, 0.0, 0.0, 0.25, NaN]
+        p′ = algorithm3(w, 0.5)
+        @test isequal(p′, p)
+        @test sum(p′[1:4]) == 0.5
+        w = [0.0, 10.0, 5.0, 0.0, -Inf]
+        p = [0.25, -0.0, -0.0, 0.25, -NaN]
+        p′ = algorithm3(w, 0.5)
+        @test all(p′ .=== p)
+        @test sum(p′[1:4]) == 0.5
+
+        w = [1.0, 2.0, 3.0, Inf]
+        p = [0.0, 0.0, 0.0, NaN]
+        p′ = algorithm3(w, 0.5)
+        @test isequal(p′, p)
+
+        # Inf * inv(Inf) -> NaN
+        w = [0.0, 0.0, 0.0, Inf]
+        p′ = algorithm3(w, 0.5)
+        @test sum(p′[1:3]) ≈ 0.5
+        @test isnan(p′[4]) # usually === -NaN, but maybe not always
+        w = [0.0, 0.0, 0.0, -Inf]
+        p′ = algorithm3(w, 0.5)
+        @test sum(p′[1:3]) ≈ 0.5
+        @test isnan(p′[4]) # usually === -NaN, but maybe not always
+    end
+
     @testset "algorithm 3, sweep precision (SIMD rounding)" begin
         rng = Xoshiro(1234)
         w = rand(rng, 256)
@@ -40,7 +80,7 @@
         algorithm3!(p, w, u)
         @test count(iszero, p) == 59
         @test sum(p) ≈ 1.0
-        # Large values -- sensitive to very small u's around 1e-6
+        # Large values -- potentially sensitive to very small u's around 1e-6
         for u = 0.0001:0.0001:0.9999
             for i = 1:20
                 n = 1 << i
