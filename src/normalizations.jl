@@ -185,7 +185,7 @@ mass `u` across the 0 or more elements which are equal to zero. It is assumed
 function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
     s = zero(T)
     z = 0
-    @inbounds @simd for i ∈ eachindex(p)
+    @inbounds @simd for i ∈ eachindex(p, w)
         w̃ = w[i]
         s += w̃
         p[i] = w̃
