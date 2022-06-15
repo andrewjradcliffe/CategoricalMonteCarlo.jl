@@ -5,6 +5,8 @@
 #
 ############################################################################################
 
+_typeofinv(x) = typeof(inv(x))
+
 """
     normalize1!(A::AbstractArray{<:Real})
 
@@ -52,39 +54,60 @@ It is assumed that `A[i] ≥ 0` ∀i.
 
 See also: [`normalize1!`](@ref)
 """
-normalize1(A::AbstractArray{T}) where {T<:Real} = normalize1!(similar(A, promote_type(T, Float64)), A)
+normalize1(A::AbstractArray{T<:Real}) = normalize1!(similar(A, _typeofinv(first(A))), A)
 
 ################
+@noinline function _check_normweights(I::Vector{Int}, x)
+    mn, mx = extrema(I)
+    f, l = firstindex(x), lastindex(x)
+    mn ≥ f || throw(BoundsError(x, mn))
+    mx ≤ l || throw(BoundsError(x, mx))
+end
 
-"""
-    normweights!(p::Vector{S}, w::Vector{T}, I::Vector{Int}) where {T<:Real, S<:AbstractFloat}
+#### Algorithm 2.1.
+# I ∈ ℕᴺ, 𝐰 ∈ ℝᴰ; I ⊆ 1,…,D
+# -> ω ∈ ℝᴺ, ωᵢ = 𝐰ᵢ / ∑ⱼ 𝐰ⱼ; j ∈ I
 
-Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
-"""
-function normweights!(p::Vector{S}, I::Vector{Int}, w::Vector{T}) where {T<:Real, S<:AbstractFloat}
-    s = zero(T)
-    @inbounds @simd ivdep for i ∈ eachindex(I, p)
+function unsafe_normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
+    s = zero(S)
+    @inbounds @simd for i ∈ eachindex(I, p)
         w̃ = w[I[i]]
         s += w̃
         p[i] = w̃
     end
     c = inv(s)
-    @inbounds @simd ivdep for i ∈ eachindex(p)
+    @inbounds @simd for i ∈ eachindex(p)
         p[i] *= c
     end
     return p
 end
 
 """
-    normweights(w::Vector{<:Real}, I::Vector{Int})
+    normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
+
+Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
+Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
+"""
+function normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
+    _check_normweights(I, w)
+    unsafe_normweights!(p, I, w)
+end
+
+"""
+    normweights(I::Vector{Int}, w::Vector{<:Real})
 
 Create a vector of probabilities by normalizing the weights selected by `I` from `w`.
 
 See also: [`normweights!`](@ref)
 """
-normweights(I::Vector{Int}, w::Vector{T}) where {T<:Real} =
-    normweights!(similar(I, promote_type(T, Float64)), I, w)
+normweights(I::Vector{Int}, w::Vector{<:Real}) = normweights!(similar(I, _typeofinv(first(w))), I, w)
+# Or, just promote_type(T, Float64)?
 
+
+
+################
+
+#### Algorithm 2.1. + Algorithm 3. (fused)
 
 # A weight is assigned to i = 1,…,k components, and there are unknown components k+1,…,N.
 # The unknown components are of the same category, and the probability mass of the category is
