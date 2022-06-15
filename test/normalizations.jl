@@ -54,6 +54,107 @@
 end
 
 
+@testset "normalize1" begin
+    # An aberrant case
+    w = [-1.0, 1.0, 1.0]
+    p = normalize1(w)
+    @test p == w
+    @test sum(p) ≈ 1.0
+    w = abs.(w)
+    p = normalize1(w)
+    @test p == [1/3, 1/3, 1/3]
+    @test sum(p) ≈ 1.0
+    # The usual things
+    A = [1.0 2.0; 3.0 4.0]
+    B = normalize1(A)
+    @test sum(B) ≈ 1.0
+    normalize1!(B)
+    @test sum(B) ≈ 1.0
+    A[1] = -1.0
+    normalize1!(B, A)
+    @test sum(B) ≈ 1.0
+    @test any(≤(0.0), B)
+    @testset "NaN handling (lack thereof)" begin
+        # things which generate NaNs
+        A = zeros(2,2)
+        @test isequal(normalize1(A), fill(NaN, 2,2))
+        # preexisting NaN(s)
+        A = [0.0 NaN; 0.0 1.0]
+        @test isequal(normalize1(A), fill(NaN, 2,2))
+        A = fill(NaN, 2,2)
+        @test isequal(normalize1(A), fill(NaN, 2,2))
+        A = fill(-NaN, 2,2)
+        B = normalize1(A)
+        @test all(A .=== B)
+        @test all(A .=== -NaN)
+    end
+    @testset "±Inf handling (lack thereof)" begin
+        A = [Inf Inf; Inf Inf]
+        @test isequal(normalize1(A), fill(NaN, 2,2))
+        A = [0.0 Inf; 0.0 1.0]
+        @test isequal(normalize1(A), [0.0 NaN; 0.0 0.0])
+        A = [0.0 -Inf; 0.0 1.0]
+        B = normalize1(A)
+        @test isequal(B, [-0.0 NaN; -0.0 -0.0])
+        @test isequal(B, [-0.0 -NaN; -0.0 -0.0])
+        # is the negative bit on the NaN set? (it should be)
+        @test B[1,2] === -NaN
+        @test B[1,2] !== NaN
+        # propagating negative bit
+        normalize1!(A, B)
+        @test all(A .=== -NaN)
+    end
+
+    # Sweeps: rounding errors, etc.
+    rng = Xoshiro(0x434b089281805289)
+    for i = 1:20
+        for j = -1:1
+            n = (1 << i) + j
+            w = rand(rng, n)
+            p = normalize1(w)
+            @test all(!iszero, p)
+            @test sum(p) ≈ 1.0
+            @test p ≈ normalize1(p)
+            # x = copyto!(similar(w), w)
+            # for u = 0.0001:0.0001:0.9999
+            #     w .= x .* u
+            #     normalize1!(p, w)
+            #     @test all(!iszero, p)
+            #     @test sum(p) ≈ 1.0
+            # end
+        end
+    end
+    x = rand(rng, 256)
+    x[rand(rng, 1:256, 64)] .= 0
+    y = normalize1(x)
+    @test count(iszero, x) == count(iszero, y)
+    @test sum(y) ≈ 1.0
+    w = similar(x)
+    # Large values
+    for i = 1:20
+        n = 1 << i
+        w .= x .* n
+        normalize1!(y, w)
+        @test sum(y) ≈ 1.0
+        w[129:256] .*= n >> i
+        normalize1!(y, w)
+        @test sum(y) ≈ 1.0
+    end
+    # Small values
+    nz = count(iszero, x)
+    for u = 0.000001:0.000001:0.999999
+        w .= x .* u
+        normalize1!(y, w)
+        @test sum(y) ≈ 1.0
+        @test count(iszero, y) == nz
+        # mixed with large
+        w[129:256] .*= 10^6
+        @test sum(y) ≈ 1.0
+        @test count(iszero, y) == nz
+    end
+end
+
+
 @testset "normalizations, 0 unchanged component" begin
     I′ = [1, 2, 3, 4, 5]
     w = [2, 1, 3, 4, 5]
