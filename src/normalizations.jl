@@ -102,6 +102,116 @@ See also: [`normweights!`](@ref)
 """
 normweights(I::Vector{Int}, w::Vector{<:Real}) = normweights!(similar(I, _typeofinv(first(w))), I, w)
 
+################
+
+#### Algorithm 3. -- FillMass
+# 𝐰 ∈ ℝᴺ, u ∈ R, 0 ≤ u ≤ 1
+# -> ω ∈ ℝᴺ, J = {i: wᵢ = 0}
+# ωᵢ =
+#     Case 1: if J ≠ ∅
+#             u / |J|                     if i ∈ J
+#             (1 - u) * 𝐰ᵢ / ∑ᵢ₌₁ᴺ 𝐰ᵢ     otherwise
+#     Case 2: if J = 1,…,N
+#             1/N
+
+"""
+    algorithm3!(p::Vector{S}, u::S) where {S<:AbstractFloat}
+
+Normalize `p` to probabilities, spreading probability mass `u` across the
+0 or more elements which are equal to zero. It is assumed (note: not checked!)
+that `0 ≤ u ≤ 1`. If all values of `p` are equal to zero, `p` is filled with `1 / length(p)`.
+
+See also: [`algorithm3`](@ref)
+
+# Examples
+```jldoctest
+julia> algorithm3!([0.0, 10.0, 5.0, 0.0], 0.5)
+4-element Vector{Float64}:
+ 0.25
+ 0.3333333333333333
+ 0.16666666666666666
+ 0.25
+
+julia> algorithm3!([0.0, 10.0, 5.0, 0.0], 1.5)     # not desirable!
+4-element Vector{Float64}:
+  0.75
+ -0.3333333333333333
+ -0.16666666666666666
+  0.75
+
+julia> algorithm3!([0.0, 0.0, 0.0], 0.5)           # fill with 1 / length
+3-element Vector{Float64}:
+ 0.3333333333333333
+ 0.3333333333333333
+ 0.3333333333333333
+
+julia> algorithm3!([0.0, 0.0], 0.0)                # fill with 1 / length even if zero mass
+2-element Vector{Float64}:
+ 0.5
+ 0.5
+
+julia> algorithm3!([1.0, 2.0, 3.0], 0.5)           # in absence of 0's, just normalize
+3-element Vector{Float64}:
+ 0.16666666666666666
+ 0.3333333333333333
+ 0.5
+```
+"""
+function algorithm3!(p::Vector{S}, u::S) where {S<:AbstractFloat}
+    s = zero(S)
+    z = 0
+    @inbounds @simd for i ∈ eachindex(p)
+        pᵢ = p[i]
+        s += pᵢ
+        z += pᵢ == zero(S)
+    end
+    c = z == 0 ? inv(s) : (one(S) - u) / s
+    u′ = z == length(p) ? inv(z) : u / z
+    @inbounds @simd for i ∈ eachindex(p)
+        pᵢ = p[i]
+        p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
+    end
+    p
+end
+
+"""
+    algorithm3!(p::Vector{S}, w::Vector{<:Real}, u::S) where {S<:AbstractFloat}
+
+Normalize `w` to probabilities, storing the result in `p`, spreading probability
+mass `u` across the 0 or more elements which are equal to zero. It is assumed
+(note: not checked!) that `0 ≤ u ≤ 1`. If all values of `w` are zero,
+`p` is filled with `1 / length(p)`.
+"""
+function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
+    s = zero(T)
+    z = 0
+    @inbounds @simd for i ∈ eachindex(p)
+        w̃ = w[i]
+        s += w̃
+        p[i] = w̃
+        z += w̃ == zero(T)
+    end
+    c = z == 0 ? inv(s) : (one(S) - u) / s
+    u′ = z == length(p) ? inv(z) : u / z
+    @inbounds @simd for i ∈ eachindex(p)
+        pᵢ = p[i]
+        p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
+    end
+    p
+end
+
+"""
+    algorithm3(w::Vector{<:Real}, u::AbstractFloat)
+
+Normalize `w` to probabilities, spreading the probability mass `u` across
+the 0 or more elements which are equal to zero. It is assumed (note: not checked!)
+that `0 ≤ u ≤ 1`. If all values of `w` are zero, `p` is filled with `1 / length(p)`.
+
+See also: [`algorithm3!`](@ref)
+"""
+algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
+    algorithm3!(similar(p, promote_type(T, S)), p, u)
+
 
 
 ################
@@ -157,57 +267,6 @@ See also: [`normweights!`](@ref)
 normweights(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
     (zero(S) ≤ u ≤ one(S) || throw(DomainError(u)); normweights!(similar(I, promote_type(T, S, Float64)), I, w, u))
 
-"""
-    normweights!(p::Vector{S}, u::S) where {S<:AbstractFloat}
-
-Normalize `p` to probabilities, spreading probability mass `u` across the
-0 or more elements which have value(s) of zero. If all values of `p` are
-equal to zero, `p` is filled with `1 / length(p)`.
-"""
-function normweights!(p::Vector{S}, u::S) where {S<:AbstractFloat}
-    s = zero(S)
-    z = 0
-    @inbounds @simd for i ∈ eachindex(p)
-        pᵢ = p[i]
-        s += pᵢ
-        z += pᵢ == zero(S)
-    end
-    c = z == 0 ? inv(s) : (one(S) - u) / s
-    u′ = z == length(p) ? inv(z) : u / z
-    @inbounds @simd for i ∈ eachindex(p)
-        pᵢ = p[i]
-        p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
-    end
-    p
-end
-
-"""
-    normweights!(p::Vector{S}, w::Vector{<:Real}, u::S) where {S<:AbstractFloat}
-
-Normalize `w` to probabilities, storing the result in `p`, spreading probability
-mass `u` across the 0 or more elements which have value(s) of zero. If all values
-of `w` are zero, `p` is filled with `1 / length(p)`.
-"""
-function normweights!(p::Vector{S}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
-    s = zero(T)
-    z = 0
-    @inbounds @simd for i ∈ eachindex(p)
-        w̃ = w[i]
-        s += w̃
-        p[i] = w̃
-        z += w̃ == zero(T)
-    end
-    c = z == 0 ? inv(s) : (one(S) - u) / s
-    u′ = z == length(p) ? inv(z) : u / z
-    @inbounds @simd for i ∈ eachindex(p)
-        pᵢ = p[i]
-        p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
-    end
-    p
-end
-
-normweights(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    normweights!(similar(p, promote_type(T, S)), p, u)
 
 
 
