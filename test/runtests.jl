@@ -1,5 +1,8 @@
 using CategoricalMonteCarlo
-using Test, Random
+using Random
+using Test
+
+import CategoricalMonteCarlo: _check_reducedims
 
 # @testset "CategoricalMonteCarlo.jl" begin
 # end
