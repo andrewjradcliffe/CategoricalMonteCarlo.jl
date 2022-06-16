@@ -20,6 +20,10 @@ num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where 
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
 num_cat(A::Vector{T}) where {T<:AbstractFloat} = length(A)
 
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(length, a, init=0), A, init=0)
+num_cat(A::AbstractArray{SparseVector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
+num_cat(A::SparseVector{T}) where {T<:AbstractFloat} = length(A)
+
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
     n_cat = num_cat(A)
@@ -41,6 +45,20 @@ end
 end
 
 @noinline function _check_reducedims(B, A::Vector{Int})
+    n_cat = num_cat(A)
+    n_cat′ = length(axes(B, 1))
+    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    true
+end
+
+@noinline function _check_reducedims(B, A::Vector{T}) where {T<:AbstractFloat}
+    n_cat = num_cat(A)
+    n_cat′ = length(axes(B, 1))
+    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    true
+end
+
+@noinline function _check_reducedims(B, A::SparseVector{T}) where {T<:AbstractFloat}
     n_cat = num_cat(A)
     n_cat′ = length(axes(B, 1))
     n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
