@@ -172,3 +172,76 @@ function sample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
     end
     B
 end
+
+################
+# General case: dense vectors, the linear index of which indicates the category
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C = Vector{Int}(undef, size(B, 2))
+    U = Vector{Float64}(undef, size(B, 2))
+    Σω = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for ω ∈ a
+            resize!(Σω, length(ω))
+            cumsum!(Σω, ω)
+            categorical!(C, U, Σω)
+            for j ∈ axes(B, 2)
+                c = C[j]
+                B[c, j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+# # A simplification: an array of dense vectors
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C = Vector{Int}(undef, size(B, 2))
+    U = Vector{Float64}(undef, size(B, 2))
+    Σω = Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        ω = A[IA]
+        resize!(Σω, length(ω))
+        cumsum!(Σω, ω)
+        categorical!(C, U, Σω)
+        for j ∈ axes(B, 2)
+            c = C[j]
+            B[c, j, IR] += one(S)
+        end
+    end
+    B
+end
+
+# # The simplest case: a dense vector
+sample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = sample(S, A, n_sim, n_cat, :)
+sample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = sample(S, A, n_sim, n_cat, :)
+
+function sample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat} where {N}
+    B = zeros(S, n_cat, n_sim)
+    sample!(B, A)
+end
+
+function sample!(B::AbstractMatrix{S}, A::Vector{T}) where {S<:Real} where {T<:AbstractFloat}
+    _check_reducedims(B, A)
+    ω = A
+    k = length(ω)
+    Σω = cumsum(ω)
+    s₀ = Σω[1]
+    @inbounds for j ∈ axes(B, 2)
+        u = rand()
+        c = 1
+        s = s₀
+        while s < u && c < k
+            c += 1
+            s = Σω[c]
+        end
+        B[c, j] += one(S)
+    end
+    B
+end
