@@ -352,3 +352,117 @@ function tsample!(B::AbstractMatrix{S}, A::Vector{T}, 𝒥::UnitRange{Int}) wher
         return B
     end
 end
+
+
+################
+# General case: sparse vectors, the nzval of which indicates the category
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{T}, M}, N} where {T<:AbstractFloat, M}
+    (; start, stop) = 𝒥
+    L = stop - start + 1
+    if L ≤ 1024
+        C = Vector{Int}(undef, L)
+        U = Vector{Float64}(undef, L)
+        Σω = Vector{T}()
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keep, default)
+            a = A[IA]
+            for sv ∈ a
+                (; n, nzind, nzval) = sv
+                Iₛ, ω = nzind, nzval
+                resize!(Σω, length(ω))
+                cumsum!(Σω, ω)
+                categorical!(C, U, Σω)
+                for l ∈ eachindex(C, 𝒥)
+                    c = C[l]
+                    j = 𝒥[l]
+                    B[Iₛ[c], j, IR] += one(S)
+                end
+            end
+        end
+        return B
+    else
+        h = (start + stop) >> 1
+        @sync begin
+            Threads.@spawn tsample!(B, A, keep, default, start:h)
+            tsample!(B, A, keep, default, (h + 1):stop)
+        end
+        return B
+    end
+end
+
+# A simplification: an array of sparse vectors
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    (; start, stop) = 𝒥
+    L = stop - start + 1
+    if L ≤ 1024
+        C = Vector{Int}(undef, L)
+        U = Vector{Float64}(undef, L)
+        Σω = Vector{T}()
+        @inbounds for IA ∈ CartesianIndices(A)
+            IR = Broadcast.newindex(IA, keep, default)
+            sv = A[IA]
+            (; n, nzind, nzval) = sv
+            Iₛ, ω = nzind, nzval
+            resize!(Σω, length(ω))
+            cumsum!(Σω, ω)
+            categorical!(C, U, Σω)
+            for l ∈ eachindex(C, 𝒥)
+                c = C[l]
+                j = 𝒥[l]
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+        return B
+    else
+        h = (start + stop) >> 1
+        @sync begin
+            Threads.@spawn tsample!(B, A, keep, default, start:h)
+            tsample!(B, A, keep, default, (h + 1):stop)
+        end
+        return B
+    end
+end
+
+# The simplest case: a sparse vector
+tsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = tsample(S, A, n_sim, n_cat, :)
+tsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = tsample(S, A, n_sim, n_cat, :)
+
+function tsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat}
+    B = zeros(S, n_cat, n_sim)
+    tsample!(B, A)
+end
+
+function tsample!(B::AbstractMatrix, A::SparseVector{<:AbstractFloat})
+    _check_reducedims(B, A)
+    tsample!(B, A, firstindex(B, 2):size(B, 2))
+end
+
+function tsample!(B::AbstractMatrix{S}, A::SparseVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    (; start, stop) = 𝒥
+    L = stop - start + 1
+    if L ≤ 1048576
+        (; n, nzind, nzval) = A
+        Iₛ, ω = nzind, nzval
+        k = length(ω)
+        Σω = cumsum(ω)
+        s₀ = Σω[1]
+        @inbounds for j ∈ 𝒥
+            u = rand()
+            c = 1
+            s = s₀
+            while s < u && c < k
+                c += 1
+                s = Σω[c]
+            end
+            B[Iₛ[c], j] += one(S)
+        end
+        return B
+    else
+        h = (start + stop) >> 1
+        @sync begin
+            Threads.@spawn tsample!(B, A, start:h)
+            tsample!(B, A, (h + 1):stop)
+        end
+        return B
+    end
+end
