@@ -30,7 +30,7 @@ function tsample!(B, A)
     tsample!(B, A, keep, default, firstindex(B, 2):size(B, 2))
 end
 
-# # The expected case: vectors of sparse vectors (as their bare components)
+# The expected case: vectors of sparse vectors (as their bare components)
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     (; start, stop) = 𝒥
     L = stop - start + 1
@@ -63,7 +63,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     end
 end
 
-# # A simplification: an array of sparse vectors
+# A simplification: an array of sparse vectors
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     (; start, stop) = 𝒥
     L = stop - start + 1
@@ -94,7 +94,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int},
     end
 end
 
-# # The simplest case: a sparse vector
+# The simplest case: a sparse vector
 tsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = tsample(S, A, n_sim, n_cat, :)
 tsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = tsample(S, A, n_sim, n_cat, :)
 
@@ -138,8 +138,8 @@ function tsample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::
 end
 
 ################
-# # Specialized method for eltype(A)::Vector{Vector{Int}}
-# # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
+# Specialized method for eltype(A)::Vector{Vector{Int}}
+# or, in other words, where the probability mass on each element is 1 / length(Iₛ)
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
     (; start, stop) = 𝒥
     L = stop - start + 1
@@ -168,7 +168,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     end
 end
 
-# # A simplification: an array of sparse vectors
+# A simplification: an array of sparse vectors
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     (; start, stop) = 𝒥
     L = stop - start + 1
@@ -195,14 +195,14 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, k
     end
 end
 
-# # The simplest case: a sparse vector
+# The simplest case: a sparse vector
 function tsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {N}
     B = zeros(S, n_cat, n_sim)
     tsample!(B, A)
 end
 
-# # Trivial parallelism is preferable here, but it's not safe!
-# # These are questionable methods (though, the function barrier approach is safe).
+# Trivial parallelism is preferable here, but it's not safe!
+# These are questionable methods (though, the function barrier approach is safe).
 # @inline function _tsample!(B::AbstractMatrix{S}, A::Vector{Int}, j::Int) where {S<:Real}
 #     c = rand(A)
 #     @inbounds B[c, j] += one(S)
@@ -279,7 +279,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     end
 end
 
-# # A simplification: an array of dense vectors
+# A simplification: an array of dense vectors
 function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     (; start, stop) = 𝒥
     L = stop - start + 1
@@ -310,7 +310,7 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, kee
     end
 end
 
-# # The simplest case: a dense vector
+# The simplest case: a dense vector
 tsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = tsample(S, A, n_sim, n_cat, :)
 tsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = tsample(S, A, n_sim, n_cat, :)
 
