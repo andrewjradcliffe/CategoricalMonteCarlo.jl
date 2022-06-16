@@ -26,15 +26,35 @@ end
     @test num_cat(A) == 6
     A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
     @test num_cat(A) == 6
+    A = [1,2,3,4,5,6]
+    @test num_cat(A) == 6
     A = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
     @test num_cat(A) == 6
     A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]]
     @test num_cat(A) == 6
+    A = ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
+    @test num_cat(A) == 6
+    A = [[[0.3, 0.7], [0.2, 0.3, 0.4, 0.1], [0.1, 0.1, 0.1, 0.1,0.1, 0.5]]]
+    @test num_cat(A) == 6
+    A = [[0.3, 0.7], [0.2, 0.3, 0.4, 0.1], [0.1, 0.1, 0.1, 0.1,0.1, 0.5]]
+    @test num_cat(A) == 6
+    A = [0.1, 0.1, 0.1, 0.1,0.1, 0.5]
+    @test num_cat(A) == 6
+    sv1 = SparseVector(2, [1,2], [0.3, 0.7])
+    sv2 = SparseVector(4, [1,2,3,4], [0.2, 0.3, 0.4, 0.1])
+    sv3 = SparseVector(6, [1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
+    A = [[sv1, sv2, sv3]]
+    @test num_cat(A) == 6
+    A = [sv1, sv2, sv3]
+    @test num_cat(A) == 6
+    @test num_cat(sv3) == 6
     # empty cases
-    @test num_cat(Vector{Vector{Int}}()) == 0
     @test num_cat(Vector{Vector{Vector{Int}}}()) == 0
-    @test num_cat(Vector{Tuple{Vector{Int}, Vector{Float64}}}()) == 0
+    @test num_cat(Vector{Vector{Int}}()) == 0
+    @test num_cat(Vector{Int}()) == 0
     @test num_cat(Vector{Vector{Tuple{Vector{Int}, Vector{Float64}}}}()) == 0
+    @test num_cat(Vector{Tuple{Vector{Int}, Vector{Float64}}}()) == 0
+    @test num_cat((Vector{Int}(), Vector{Float64}())) == 0
     # partially empty
     A = [[1, 2], Int[], [1, 2, 3, 4, 5, 6]]
     @test num_cat(A) == 6
