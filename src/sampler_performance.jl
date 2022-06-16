@@ -83,6 +83,10 @@ dims = (1,2,3)
 @code_warntype sample!(B_2, D′)
 
 
+A = [[0.3, 0.7], [0.2, 0.3, 0.4, 0.1], [0.1, 0.1, 0.1, 0.1,0.1, 0.5]]
+B = sample(Int, A, 10, num_cat(A), (1,))
+
+
 # @timev B_1_4 = sample4(Int, D, n_sim, num_cat(D), dims);
 # @timev B_2_4 = sample4(Int, D′, n_sim, num_cat(D′), dims);
 # sum(B_1) == sum(B_2) == sum(B_1_4) == sum(B_2_4)
@@ -101,6 +105,29 @@ function countcategory(A::AbstractArray{T, N}) where {T<:Integer, N}
     end
     v
 end
+
+#### actual SparseVector
+using SparseArrays
+Iₛ, ω = ([1,2,3,4], [0.2, 0.3, 0.4, 0.1])
+sv = SparseVector(4, Iₛ, ω)
+@timev (; n, nzind, nzval) = sv
+sv1 = SparseVector(2, [1,2], [0.3, 0.7])
+sv2 = SparseVector(4, [1,2,3,4], [0.2, 0.3, 0.4, 0.1])
+sv3 = SparseVector(6, [1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
+A = [sv1, sv2, sv3]
+D = fill(A, 100,50,50);
+@timev B = sample(Int, D, 1000, dims=(1,2,3));
+@timev sample!(B, D);
+
+# nzval must be in order to be a valid SparseVector
+sv1 = SparseVector(1000, [1, 1000], [0.3, 0.7])
+sv2 = SparseVector(400, [100,200,300,400], [0.2, 0.3, 0.4, 0.1])
+sv3 = SparseVector(1000, [200, 400, 600, 800, 900, 1000], [0.1, 0.1, 0.1, 0.1,0.5, 0.1])
+A = [sv1, sv2, sv3]
+D = fill(A, 100,50,50);
+@timev B = sample(Int, D, 1000, dims=(1,2,3));
+@timev sample!(B, D);
+@code_warntype sample!(B, D)
 
 ################################################################
 # Limiting chunksize of U; single sparse vectors.
