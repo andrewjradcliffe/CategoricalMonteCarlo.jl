@@ -16,6 +16,10 @@ num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} wher
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(_maximum_maybe, A, init=0)
 num_cat(A::Vector{Int}) = _maximum_maybe(A)
 
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(length, a, init=0), A, init=0)
+num_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
+num_cat(A::Vector{T}) where {T<:AbstractFloat} = length(A)
+
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
     n_cat = num_cat(A)
