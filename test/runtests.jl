@@ -1,5 +1,5 @@
 using CategoricalMonteCarlo
-using Test
+using Test, Random
 
 # @testset "CategoricalMonteCarlo.jl" begin
 # end
