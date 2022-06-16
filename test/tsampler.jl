@@ -38,6 +38,7 @@
     @testset "eltypes" begin
         n_sim = 10
         A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+        # Types one would normally expect
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128,
                  Float16, Float32, Float64, BigFloat, BigInt, Rational]
             B = @inferred tsample(T, A, n_sim)
@@ -47,6 +48,15 @@
             @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
             @test_throws MethodError tsample(Complex{T}, A, n_sim)
         end
+        # Composite numeric types
+        for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128]
+            B = @inferred tsample(Rational{T}, A, n_sim)
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=1))
+            @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+        end
+        # Real, AbstractFloat, Integer, Signed, Unsigned. work but should be avoided
         @test_throws InexactError tsample(Bool, A, n_sim)
         @test_throws MethodError tsample(Union{Int16, Int32}, A, n_sim)
         B = Matrix{Union{Int16,Int32}}(undef, 6, 10)
@@ -91,7 +101,7 @@ end
     end
     @testset "eltypes" begin
         n_sim = 10
-        A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+        A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]]
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128,
                  Float16, Float32, Float64, BigFloat, BigInt, Rational]
             B = @inferred tsample(T, A, n_sim)
@@ -100,6 +110,13 @@ end
             @test all(==(3), sum(B, dims=1))
             @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
             @test_throws MethodError tsample(Complex{T}, A, n_sim)
+        end
+        for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128]
+            B = @inferred tsample(Rational{T}, A, n_sim)
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=1))
+            @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
         end
         @test_throws InexactError tsample(Bool, A, n_sim)
         @test_throws MethodError tsample(Union{Int16, Int32}, A, n_sim)
