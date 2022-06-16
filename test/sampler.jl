@@ -37,27 +37,67 @@
     end
     @testset "eltypes" begin
         n_sim = 10
-        A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
         # Types one would normally expect
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128,
                  Float16, Float32, Float64, BigFloat, BigInt, Rational]
-            B = @inferred sample(T, A, n_sim)
+            A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+            B = @inferred sample(T, A, n_sim, num_cat(A))
             @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
             @test all(≥(0), minimum(B, dims=2))
             @test all(==(3), sum(B, dims=1))
             @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
             @test_throws MethodError sample(Complex{T}, A, n_sim)
+            A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+            B = @inferred sample(T, A, n_sim, num_cat(A))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=(1,3)))
+            @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            @test_throws MethodError sample(Complex{T}, A, n_sim)
+            A = [1,2,3,4,5,6]
+            B = @inferred sample(T, A, n_sim)
+            @test all(==(1), sum(B, dims=1))
+            A = [1,2,3,4]
+            sample!(B, A)
+            @test all(==(2), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+            A = [1,2]
+            sample!(B, A)
+            @test all(==(3), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test_throws MethodError sample(Complex{T}, A, n_sim)
         end
         # Composite numeric types
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128]
-            B = @inferred sample(Rational{T}, A, n_sim)
+            A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+            B = @inferred sample(Rational{T}, A, n_sim, num_cat(A))
             @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
             @test all(≥(0), minimum(B, dims=2))
             @test all(==(3), sum(B, dims=1))
             @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+            B = @inferred sample(Rational{T}, A, n_sim, num_cat(A))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=(1,3)))
+            @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            A = [1,2,3,4,5,6]
+            B = @inferred sample(Rational{T}, A, n_sim)
+            @test all(==(1), sum(B, dims=1))
+            A = [1,2,3,4]
+            sample!(B, A)
+            @test all(==(2), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+            A = [1,2]
+            sample!(B, A)
+            @test all(==(3), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
         end
         # Real, AbstractFloat, Integer, Signed, Unsigned. work but should be avoided
-        @test_throws InexactError sample(Bool, A, n_sim)
+        A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
+        @test_throws InexactError sample(Bool, A, 1000)
         @test_throws MethodError sample(Union{Int16, Int32}, A, n_sim)
         B = Matrix{Union{Int16,Int32}}(undef, 6, 10)
         @test_throws MethodError sample!(B, A)
@@ -101,24 +141,67 @@ end
     end
     @testset "eltypes" begin
         n_sim = 10
-        A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]]
+        # Types one would normally expect
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128,
                  Float16, Float32, Float64, BigFloat, BigInt, Rational]
-            B = @inferred sample(T, A, n_sim)
+            A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]]
+            B = @inferred sample(T, A, n_sim, num_cat(A))
             @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
             @test all(≥(0), minimum(B, dims=2))
             @test all(==(3), sum(B, dims=1))
             @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
             @test_throws MethodError sample(Complex{T}, A, n_sim)
+            A = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+            B = @inferred sample(T, A, n_sim, num_cat(A))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=(1,3)))
+            @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            @test_throws MethodError sample(Complex{T}, A, n_sim)
+            A = [1,2,3,4,5,6]
+            B = @inferred sample(T, A, n_sim)
+            @test all(==(1), sum(B, dims=1))
+            A = [1,2,3,4]
+            sample!(B, A)
+            @test all(==(2), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+            A = [1,2]
+            sample!(B, A)
+            @test all(==(3), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test_throws MethodError sample(Complex{T}, A, n_sim)
         end
+        # Composite numeric types
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128]
-            B = @inferred sample(Rational{T}, A, n_sim)
+            A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]]
+            B = @inferred sample(Rational{T}, A, n_sim, num_cat(A))
             @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
             @test all(≥(0), minimum(B, dims=2))
             @test all(==(3), sum(B, dims=1))
             @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            A = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+            B = @inferred sample(Rational{T}, A, n_sim, num_cat(A))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=(1,3)))
+            @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            A = ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
+            B = @inferred sample(Rational{T}, A, n_sim)
+            @test all(==(1), sum(B, dims=1))
+            A = ([1,2,3,4], [0.2, 0.3, 0.4, 0.1])
+            sample!(B, A)
+            @test all(==(2), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+            A = ([1, 2], [0.3, 0.7])
+            sample!(B, A)
+            @test all(==(3), sum(B, dims=1))
+            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
+            @test all(≥(0), minimum(B, dims=2))
         end
-        @test_throws InexactError sample(Bool, A, n_sim)
+        # Real, AbstractFloat, Integer, Signed, Unsigned. work but should be avoided
+        A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.5, 0.2, 0.2, 0.05,0.025, 0.025])]] # slight change to increase probability of Inexact throw
+        @test_throws InexactError sample(Bool, A, 1000)
         @test_throws MethodError sample(Union{Int16, Int32}, A, n_sim)
         B = Matrix{Union{Int16,Int32}}(undef, 6, 10)
         @test_throws MethodError sample!(B, A)
