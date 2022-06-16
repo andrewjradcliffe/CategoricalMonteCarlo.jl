@@ -356,13 +356,13 @@ end
 
 ################
 # General case: sparse vectors, the nzval of which indicates the category
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{T}, M}, N} where {T<:AbstractFloat, M}
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{T}()
+        Σω = Vector{Tv}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
@@ -391,13 +391,13 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
 end
 
 # A simplification: an array of sparse vectors
-function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{T}()
+        Σω = Vector{Tv}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             sv = A[IA]

@@ -20,8 +20,8 @@ num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where 
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
 num_cat(A::Vector{T}) where {T<:AbstractFloat} = length(A)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(length, a, init=0), A, init=0)
-num_cat(A::AbstractArray{SparseVector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} = maximum(a -> maximum(length, a, init=0), A, init=0)
+num_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} = maximum(length, A, init=0)
 num_cat(A::SparseVector{T}) where {T<:AbstractFloat} = length(A)
 
 @noinline function _check_reducedims(B, A)

@@ -249,12 +249,12 @@ end
 
 ################
 # General case: sparse vectors, the nzval of which indicates the category
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{T}, M}, N} where {T<:AbstractFloat, M}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{T}()
+    Σω = Vector{Tv}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
@@ -274,12 +274,12 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
 end
 
 # A simplification: an array of sparse vectors
-function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{T}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{T}()
+    Σω = Vector{Tv}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
