@@ -548,6 +548,117 @@ function sample2!(B::AbstractArray{S, N′}, A::Tuple{Vector{Int}, Vector{T}}) w
 end
 
 ################
+# Marsaglia square histogram method
+
+# The expected case: vectors of sparse vectors (as their bare components)
+function sample_mars!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C = Vector{Int}(undef, size(B, 2))
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for (Iₛ, ω) ∈ a
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, K, V)
+            for j ∈ axes(B, 2)
+                c = C[j]
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+# A simplification: an array of sparse vectors
+function sample_mars!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C = Vector{Int}(undef, size(B, 2))
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        Iₛ, ω = A[IA]
+        n = length(ω)
+        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        marsaglia!(K, V, q, ix, ω)
+        marsaglia_generate!(C, K, V)
+        for j ∈ axes(B, 2)
+            c = C[j]
+            B[Iₛ[c], j, IR] += one(S)
+        end
+    end
+    B
+end
+
+function sample_mars_dim1_4!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C = Vector{Int}(undef, size(B, 1))
+    U = Vector{Float64}(undef, size(B, 1))
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        Iₛ, ω = A[IA]
+        n = length(ω)
+        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        marsaglia!(K, V, q, ix, ω)
+        marsaglia_generate5!(C, U, K, V)
+        for j ∈ axes(B, 1)
+            c = C[j]
+            B[j, Iₛ[c], IR] += one(S)
+        end
+        # @inbounds for j ∈ axes(B, 1)
+        #     u = rand()
+        #     j′ = floor(Int, muladd(u, n, 1))
+        #     c = u < V[j′] ? j′ : K[j′]
+        #     B[j, Iₛ[c], IR] += one(S)
+        # end
+    end
+    B
+end
+
+# The simplest case: a sparse vector
+sample_mars(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = sample_mars(S, A, n_sim, n_cat, :)
+sample_mars(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = sample_mars(S, A, n_sim, n_cat, :)
+
+function sample_mars(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat} where {N}
+    B = zeros(S, n_cat, n_sim)
+    sample_mars!(B, A)
+end
+
+function sample_mars!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real} where {T<:AbstractFloat}
+    _check_reducedims(B, A)
+    Iₛ, ω = A
+    # k = length(ω)
+    # Σω = cumsum(ω)
+    # s₀ = Σω[1]
+    K, V = marsaglia(ω)
+    n = length(K)
+    @inbounds for j ∈ axes(B, 2)
+        u = rand()
+        j′ = floor(Int, muladd(u, n, 1))
+        c = u < V[j′] ? j′ : K[j′]
+        B[Iₛ[c], j] += one(S)
+    end
+    # C = Vector{Int}(undef, size(B, 2))
+    # # marsaglia_generate!(C, K, V)
+    # marsaglia_generate4!(C, K, V)
+    # @inbounds for j ∈ eachindex(axes(B, 2), C)
+    #     B[Iₛ[C[j]], j] += one(S)
+    # end
+    B
+end
+
+
+
+################
 # Reference sampler which is as simple as possible.
 function sample_simd!(B::Matrix{T}, A::Vector{Vector{Int}}) where {T<:Real}
     c = Vector{Int}(undef, size(B, 2))
