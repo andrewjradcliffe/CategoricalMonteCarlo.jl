@@ -50,7 +50,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     K, V, ix, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
@@ -73,7 +73,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     K, V, ix, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
@@ -117,7 +117,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     K, V, ix, q = _marsaglia_init()
     ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
@@ -143,7 +143,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     K, V, ix, q = _marsaglia_init()
     ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
@@ -188,7 +188,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     K, V, ix, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
@@ -211,7 +211,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     K, V, ix, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
@@ -255,7 +255,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     T, V, ix, q = _marsaglia_init(Tv)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
@@ -280,7 +280,7 @@ end
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64)
+    C, U = _genstorage_init(Float64, size(B, 2))
     T, V, ix, q = _marsaglia_init(Tv)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
