@@ -35,13 +35,13 @@ end
     @test mn ≥ 1 && mx ≤ 3
     A = marsaglia_generate(K, V, 10^6);
     t = [count(==(i), A) for i = 1:length(p)]
-    @test isapprox(t ./ 10^6, p, atol=1e-3)
+    @test ≈(t ./ 10^6, p, atol=1e-3)
     u = rand(10)
     @test_throws DimensionMismatch marsaglia_generate!(A, u, K, V)
     resize!(u, length(A))
     marsaglia_generate!(A, u, K, V)
     t = [count(==(i), A) for i = 1:length(p)]
-    @test isapprox(t ./ 10^6, p, atol=1e-3)
+    @test ≈(t ./ 10^6, p, atol=1e-3)
     resize!(V, 0)
     @test_throws BoundsError marsaglia_generate(K, V)
     @test_throws ArgumentError marsaglia_generate!(A, K, V)
@@ -71,12 +71,12 @@ end
         K, V = marsaglia(p)
         marsaglia_generate!(A, u, K, V)
         t = countcategory(A);
-        @test all(i -> isapprox(t[i] * c, p[i], atol=1e-3), 1:n)
+        @test all(i -> ≈(t[i] * c, p[i], atol=1e-3), 1:n)
         rand!(p)
         normalize1!(p)
         K, V = marsaglia(p)
         marsaglia_generate!(A, u, K, V)
         t = countcategory(A);
-        @test all(i -> isapprox(t[i] * c, p[i], atol=1e-3), 1:n)
+        @test all(i -> ≈(t[i] * c, p[i], atol=1e-3), 1:n)
     end
 end
