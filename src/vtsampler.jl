@@ -35,10 +35,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defa
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{T}()
-        ix, q = Vector{Int}(), Vector{T}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init(T)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
@@ -70,10 +68,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{T}()
-        ix, q = Vector{Int}(), Vector{T}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init(T)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             Iₛ, ω = A[IA]
@@ -143,10 +139,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defa
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{Float64}()
-        ix, q = Vector{Int}(), Vector{Float64}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init()
         ω = Vector{Float64}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
@@ -181,10 +175,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, 
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{Float64}()
-        ix, q = Vector{Int}(), Vector{Float64}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init()
         ω = Vector{Float64}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
@@ -272,10 +264,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defa
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{T}()
-        ix, q = Vector{Int}(), Vector{T}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init(T)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
@@ -307,10 +297,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, ke
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{T}()
-        ix, q = Vector{Int}(), Vector{T}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init(T)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             ω = A[IA]
@@ -380,10 +368,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defa
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{Tv}()
-        ix, q = Vector{Int}(), Vector{Tv}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init(Tv)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
@@ -417,10 +403,8 @@ function vtsample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, 
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1024
-        C = Vector{Int}(undef, L)
-        U = Vector{Float64}(undef, L)
-        K, V = Vector{Int}(), Vector{Tv}()
-        ix, q = Vector{Int}(), Vector{Tv}()
+        C, U = _genstorage_init(Float64, L)
+        K, V, ix, q = _marsaglia_init(Tv)
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             sv = A[IA]
