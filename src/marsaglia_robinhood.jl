@@ -80,7 +80,7 @@ function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) whe
 end
 
 
-function marsaglia_generate_simd!(A::AbstractArray, u::Vector{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+function marsaglia_generate_simd!(A::AbstractArray, u::AbstractArray{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
     N = length(K)
     @inbounds @simd for i ∈ eachindex(A, u)
@@ -119,7 +119,7 @@ marsaglia2(p::Vector{T}) where {T<:AbstractFloat} =
 
 # faster, but not necessarily the method to use due to LoopVectorization and Base.Threads
 # alas, it is ≈5x faster
-function marsaglia_generate4!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+function vmarsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     N = length(K)
     u = rand(length(A))
     @turbo for i ∈ eachindex(A, u)
@@ -128,7 +128,7 @@ function marsaglia_generate4!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) wh
     end
     A
 end
-function marsaglia_generate5!(A::AbstractArray, u::Vector{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     N = length(K)
     rand!(u)
     @turbo for i ∈ eachindex(A, u)
