@@ -52,15 +52,8 @@ p = [2/15, 7/15, 6/15]
 
 function marsaglia_generate(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     N = length(K)
-    j = rand(1:N)
     u = rand()
-    u < V[j] ? j : K[j]
-end
-function marsaglia_generate3(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-    N = length(K)
-    u = rand()
-    j = floor(Int, u * N + 1)
-    # j = floor(Int, muladd(u, N, 1))
+    j = floor(Int, muladd(u, N, 1))
     u < V[j] ? j : K[j]
 end
 
@@ -76,34 +69,26 @@ normalize1!(p);
 K, V = marsaglia(p);
 
 function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+    length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
     N = length(K)
-    for i ∈ eachindex(A)
-        j = rand(1:N)
+    @inbounds for i ∈ eachindex(A)
         u = rand()
-        A[i] = u < V[j] ? j : K[j]
-    end
-    A
-end
-function marsaglia_generate3!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-    N = length(K)
-    for i ∈ eachindex(A)
-        u = rand()
-        # j = floor(Int, u * N + 1)
         j = floor(Int, muladd(u, N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
         A[i] = u < V[j] ? j : K[j]
     end
     A
 end
 
-function marsaglia_generate4!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-    N = length(K)
-    u = rand(length(A))
-    @turbo for i ∈ eachindex(A, u)
-        j = floor(Int, muladd(u[i], N, 1))
-        A[i] = ifelse(u[i] < V[j], j, K[j])
-    end
-    A
-end
+# # faster, but not necessarily the method to use due to LoopVectorization and Base.Threads
+# function marsaglia_generate4!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+#     N = length(K)
+#     u = rand(length(A))
+#     @turbo for i ∈ eachindex(A, u)
+#         j = floor(Int, muladd(u[i], N, 1))
+#         A[i] = ifelse(u[i] < V[j], j, K[j])
+#     end
+#     A
+# end
 
 C = Vector{Int}(undef, 1024);
 @benchmark marsaglia_generate!($C, $K, $V)
@@ -111,6 +96,8 @@ C = Vector{Int}(undef, 1024);
 @benchmark marsaglia_generate3!($C, $K, $V)
 @benchmark marsaglia_generate4!($C, $K, $V)
 @benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
+@benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
+@benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
 [count(==(i), C) for i = 1:length(p)]
 
 
