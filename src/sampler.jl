@@ -52,14 +52,16 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{T}()
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, ω) ∈ a
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            categorical!(C, U, Σω)
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
@@ -75,13 +77,15 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{T}()
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ, ω = A[IA]
-        resize!(Σω, length(ω))
-        cumsum!(Σω, ω)
-        categorical!(C, U, Σω)
+        n = length(ω)
+        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        marsaglia!(K, V, q, ix, ω)
+        marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
@@ -102,17 +106,12 @@ end
 function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real} where {T<:AbstractFloat}
     _check_reducedims(B, A)
     Iₛ, ω = A
-    k = length(ω)
-    Σω = cumsum(ω)
-    s₀ = Σω[1]
+    K, V = marsaglia(ω)
+    n = length(K)
     @inbounds for j ∈ axes(B, 2)
         u = rand()
-        c = 1
-        s = s₀
-        while s < u && c < k
-            c += 1
-            s = Σω[c]
-        end
+        j′ = floor(Int, muladd(u, n, 1))
+        c = u < V[j′] ? j′ : K[j′]
         B[Iₛ[c], j] += one(S)
     end
     B
@@ -125,14 +124,23 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
+    U = Vector{Float64}(undef, size(B, 2))
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
+    ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
-            rand!(C, Iₛ)
+            n = length(Iₛ)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            resize!(ω, n)
+            fill!(ω, inv(n))
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
-                B[c, j, IR] += one(S)
+                B[Iₛ[c], j, IR] += one(S)
             end
         end
     end
@@ -144,13 +152,22 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
+    U = Vector{Float64}(undef, size(B, 2))
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
+    ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
-        rand!(C, Iₛ)
+        n = length(Iₛ)
+        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        resize!(ω, n)
+        fill!(ω, inv(n))
+        marsaglia!(K, V, q, ix, ω)
+        marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
-            B[c, j, IR] += one(S)
+            B[Iₛ[c], j, IR] += one(S)
         end
     end
     B
@@ -166,9 +183,13 @@ end
 # the elimination of store + access instructions associated with using a temporary array.
 function sample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
     _check_reducedims(B, A)
+    n = length(A)
+    K, V = marsaglia(fill(inv(n), n))
     @inbounds for j ∈ axes(B, 2)
-        c = rand(A)
-        B[c, j] += one(S)
+        u = rand()
+        j′ = floor(Int, muladd(u, n, 1))
+        c = u < V[j′] ? j′ : K[j′]
+        B[A[c], j] += one(S)
     end
     B
 end
@@ -180,14 +201,16 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{T}()
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for ω ∈ a
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            categorical!(C, U, Σω)
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[c, j, IR] += one(S)
@@ -203,13 +226,15 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) wher
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{T}()
+    K, V = Vector{Int}(), Vector{T}()
+    ix, q = Vector{Int}(), Vector{T}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         ω = A[IA]
-        resize!(Σω, length(ω))
-        cumsum!(Σω, ω)
-        categorical!(C, U, Σω)
+        n = length(ω)
+        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        marsaglia!(K, V, q, ix, ω)
+        marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
             B[c, j, IR] += one(S)
@@ -230,17 +255,12 @@ end
 function sample!(B::AbstractMatrix{S}, A::Vector{T}) where {S<:Real} where {T<:AbstractFloat}
     _check_reducedims(B, A)
     ω = A
-    k = length(ω)
-    Σω = cumsum(ω)
-    s₀ = Σω[1]
+    K, V = marsaglia(ω)
+    n = length(K)
     @inbounds for j ∈ axes(B, 2)
         u = rand()
-        c = 1
-        s = s₀
-        while s < u && c < k
-            c += 1
-            s = Σω[c]
-        end
+        j′ = floor(Int, muladd(u, n, 1))
+        c = u < V[j′] ? j′ : K[j′]
         B[c, j] += one(S)
     end
     B
@@ -254,16 +274,18 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{Tv}()
+    K, V = Vector{Int}(), Vector{Tv}()
+    ix, q = Vector{Int}(), Vector{Tv}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for sv ∈ a
             (; n, nzind, nzval) = sv
             Iₛ, ω = nzind, nzval
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            categorical!(C, U, Σω)
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
@@ -279,15 +301,17 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C = Vector{Int}(undef, size(B, 2))
     U = Vector{Float64}(undef, size(B, 2))
-    Σω = Vector{Tv}()
+    K, V = Vector{Int}(), Vector{Tv}()
+    ix, q = Vector{Int}(), Vector{Tv}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
         (; n, nzind, nzval) = sv
         Iₛ, ω = nzind, nzval
-        resize!(Σω, length(ω))
-        cumsum!(Σω, ω)
-        categorical!(C, U, Σω)
+        n = length(ω)
+        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        marsaglia!(K, V, q, ix, ω)
+        marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
@@ -309,17 +333,12 @@ function sample!(B::AbstractMatrix{S}, A::SparseVector{T}) where {S<:Real} where
     _check_reducedims(B, A)
     (; n, nzind, nzval) = A
     Iₛ, ω = nzind, nzval
-    k = length(ω)
-    Σω = cumsum(ω)
-    s₀ = Σω[1]
+    K, V = marsaglia(ω)
+    n = length(K)
     @inbounds for j ∈ axes(B, 2)
         u = rand()
-        c = 1
-        s = s₀
-        while s < u && c < k
-            c += 1
-            s = Σω[c]
-        end
+        j′ = floor(Int, muladd(u, n, 1))
+        c = u < V[j′] ? j′ : K[j′]
         B[Iₛ[c], j] += one(S)
     end
     B

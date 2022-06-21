@@ -186,7 +186,7 @@ function vsample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
     C = vmarsaglia_generate!(Vector{Int}(undef, size(B, 2)), K, V)
     @inbounds for j ∈ axes(B, 2)
         c = C[j]
-        B[Iₛ[c], j] += one(S)
+        B[A[c], j] += one(S)
     end
     B
 end
@@ -256,7 +256,7 @@ function vsample!(B::AbstractMatrix{S}, A::Vector{T}) where {S<:Real} where {T<:
     C = vmarsaglia_generate!(Vector{Int}(undef, size(B, 2)), K, V)
     @inbounds for j ∈ axes(B, 2)
         c = C[j]
-        B[c, j]+= one(S)
+        B[c, j] += one(S)
     end
     B
 end
