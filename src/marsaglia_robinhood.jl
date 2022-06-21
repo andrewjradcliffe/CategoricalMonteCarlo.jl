@@ -165,3 +165,10 @@ C = Vector{Int}(undef, n_samples);
 # Σp = cumsum(p);
 # U = rand(length(C));
 # @benchmark categorical!($C, $U, $Σp)
+
+################
+# convenience utils
+@inline _marsaglia_init(T::Type{<:AbstractFloat}) = Vector{Int}(undef, 0), Vector{T}(undef, 0), Vector{Int}(undef, 0), Vector{T}(undef, 0)
+@inline _marsaglia_init() = _marsaglia_init(Float64)
+
+@inline _genstorage_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n)
