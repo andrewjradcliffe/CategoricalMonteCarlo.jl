@@ -79,8 +79,22 @@ function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) whe
     A
 end
 
+
+function marsaglia_generate_simd!(A::AbstractArray, u::Vector{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+    length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
+    N = length(K)
+    @inbounds @simd for i ∈ eachindex(A, u)
+        j = floor(Int, muladd(u[i], N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
+        A[i] = u[i] < V[j] ? j : K[j]
+    end
+    A
+end
+marsaglia_generate_simd!(A::AbstractArray, K::Vector{Int}, V::Vector{<:AbstractFloat}) = marsaglia_generate_simd!(A, rand(length(A)), K, V)
+
+
+
 function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int}, p::Vector{T}) where {T<:AbstractFloat}
-    length(K) == length(V) == length(q) == length(ix) == length(p) || throw(ArgumentError("all inputs must be of same size"))
+    (length(K) == length(V) == length(q) == length(ix) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
     N = length(p)
     a = inv(N)
     @inbounds for i ∈ eachindex(K, V, p, q)
@@ -103,27 +117,48 @@ marsaglia2(p::Vector{T}) where {T<:AbstractFloat} =
     (N = length(p); marsaglia!(Vector{Int}(undef, N), Vector{promote_type(T, Float64)}(undef, N), similar(p), Vector{Int}(undef, N), p))
 
 
-# # faster, but not necessarily the method to use due to LoopVectorization and Base.Threads
-# function marsaglia_generate4!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-#     N = length(K)
-#     u = rand(length(A))
-#     @turbo for i ∈ eachindex(A, u)
-#         j = floor(Int, muladd(u[i], N, 1))
-#         A[i] = ifelse(u[i] < V[j], j, K[j])
-#     end
-#     A
-# end
+# faster, but not necessarily the method to use due to LoopVectorization and Base.Threads
+# alas, it is ≈5x faster
+function marsaglia_generate4!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+    N = length(K)
+    u = rand(length(A))
+    @turbo for i ∈ eachindex(A, u)
+        j = floor(Int, muladd(u[i], N, 1))
+        A[i] = ifelse(u[i] < V[j], j, K[j])
+    end
+    A
+end
+function marsaglia_generate5!(A::AbstractArray, u::Vector{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
+    N = length(K)
+    rand!(u)
+    @turbo for i ∈ eachindex(A, u)
+        j = floor(Int, muladd(u[i], N, 1))
+        A[i] = ifelse(u[i] < V[j], j, K[j])
+    end
+    A
+end
 
-C = Vector{Int}(undef, 1024);
+n_samples = 1024
+C = Vector{Int}(undef, n_samples);
 @benchmark marsaglia_generate!($C, $K, $V)
+@benchmark marsaglia_generate_simd!($C, $K, $V)
 @benchmark marsaglia_generate2!($C, $K, $V)
 @benchmark marsaglia_generate3!($C, $K, $V)
 @benchmark marsaglia_generate4!($C, $K, $V)
 @benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
 @benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
 @benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
-[count(==(i), C) for i = 1:length(p)]
+[[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
 
+
+# faster than nearly-divisionless? -- in fact, both are.
+p = fill(1/10000, 10000);
+K, V = marsaglia(p);
+r = 1:10000
+@benchmark rand!($C, $r)
+x = rand(1024);
+@benchmark rand!($x)
+1024 / 2e-6
 
 Σp = cumsum(p);
 U = rand(length(C));
