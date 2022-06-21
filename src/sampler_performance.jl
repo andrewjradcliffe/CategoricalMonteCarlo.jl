@@ -72,7 +72,7 @@ D = fill(A, 100,50,50);
 @timev B′ = sample(Int, A′, 1000, num_cat(A), (1,));
 @timev sample!(B, A, (1,))
 
-n_sim = 10^3
+n_sim = 10^4
 dims = (1,2,3)
 @timev B_1 = sample(Int, D, n_sim, num_cat(D), dims);
 @timev sample!(B_1, D);
@@ -81,6 +81,8 @@ dims = (1,2,3)
 @timev B_2 = sample(Int, D′, n_sim, num_cat(D′), dims);
 @timev sample!(B_2, D′);
 @code_warntype sample!(B_2, D′)
+@timev vsample!(B_2, D′);
+@timev sample_orderN!(B_2, D′);
 
 
 A = [[0.3, 0.7], [0.2, 0.3, 0.4, 0.1], [0.1, 0.1, 0.1, 0.1,0.1, 0.5]]
@@ -186,7 +188,8 @@ n_sim = 10^4
 # The smaller chunksize approach actually performs ≈5-8% worse. -- true again for nonequiprobable
 @timev B = sample(Int, Z, n_sim, dims=(1,2,3));
 @timev sample!(B, Z);
-@timev sample2!(B, Z);
+@timev vsample!(B, Z);
+@timev sample_orderN!(B, Z);
 
 ################################################################
 # Marsaglia square histogram
@@ -198,15 +201,38 @@ B = sample(Int, A, n_sim, num_cat(A), (1,));
 @benchmark sample_mars!($B, $A)
 @benchmark sample_mars2!($B, $A)
 @benchmark sample_mars3!($B, $A)
-
+@benchmark vsample!($B, $A)
 #### Marsaglia, larger arrays
 Z = fill(A, 100,50,50);
+W = [Z Z Z Z];
 n_sim = 10^4;
 B = sample(Int, Z, n_sim, dims=:);
 @timev sample!(B, Z);
 @timev sample_mars!(B, Z);
 @timev sample_mars2!(B, Z);
+@timev vsample!(B, Z);
+@timev vsample!(B, W);
 
 E = zeros(Int, reverse(size(B)));
 @timev sample_mars_dim1!(E, Z);
 @timev sample_mars_dim1_4!(E, Z);
+
+a = [1,2,3,4,5,6]
+@benchmark sample_orderN!($B, $a)
+@benchmark sample!($B, $a)
+@benchmark vsample!($B, $a)
+
+@timev vtsample!(B, D′);
+@timev tsample!(B, D′);
+B′ = zeros(Int, 6, 10^6);
+@timev vtsample!(B′, D′);
+@timev tsample!(B′, D′);
+
+# Threading with polyester
+using Polyester
+using VectorizationBase, Static
+VectorizationBase.num_cores() = static(48)
+B2 = zeros(Int, 6, 10^5);
+@timev vtsample_poly!(B2, D′, 10^4);
+@timev vtsample_poly!(B2, D′, 2 * 10^4);
+@timev vtsample_poly!(B′, D′, 2 * 10^4);

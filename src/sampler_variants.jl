@@ -656,6 +656,44 @@ function sample_mars!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) wh
     B
 end
 
+#### Threading experiments
+function _vtsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
+    L = length(𝒥)
+    C = Vector{Int}(undef, L)
+    U = Vector{Float64}(undef, L)
+    K, V = Vector{Int}(), Vector{Float64}()
+    ix, q = Vector{Int}(), Vector{Float64}()
+    ω = Vector{Float64}()
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for Iₛ ∈ a
+            n = length(Iₛ)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            resize!(ω, n)
+            fill!(ω, inv(n))
+            marsaglia!(K, V, q, ix, ω)
+            vmarsaglia_generate!(C, U, K, V)
+            for l ∈ eachindex(C, 𝒥)
+                c = C[l]
+                j = 𝒥[l]
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+    end
+    return B
+end
+
+function vtsample_poly!(B, A, sz::Int)
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    rs = splitranges(firstindex(B, 2):size(B, 2), sz)
+    @batch for r in rs
+        _vtsample_chunk!(B, A, keep, default, r)
+    end
+    B
+end
+
 
 
 ################
