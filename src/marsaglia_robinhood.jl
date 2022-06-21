@@ -71,7 +71,7 @@ K, V = marsaglia(p);
 function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
     N = length(K)
-    @inbounds for i ∈ eachindex(A)
+    @inbounds for i ∈ eachindex(A) # safe to also use @fastmath, @simd
         u = rand()
         j = floor(Int, muladd(u, N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
         A[i] = u < V[j] ? j : K[j]
@@ -82,26 +82,16 @@ function marsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Vec
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
     N = length(K)
     rand!(u)
-    @inbounds for i ∈ eachindex(A, u)
+    @inbounds for i ∈ eachindex(A, u) # safe to also use @fastmath, @simd
         j = floor(Int, muladd(u[i], N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
         A[i] = u[i] < V[j] ? j : K[j]
     end
     A
 end
 
-
-function marsaglia_generate_simd!(A::AbstractArray, u::AbstractArray{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-    length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
-    N = length(K)
-    @inbounds @simd for i ∈ eachindex(A, u)
-        j = floor(Int, muladd(u[i], N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
-        A[i] = u[i] < V[j] ? j : K[j]
-    end
-    A
+function marsaglia_generate(K::Vector{Int}, V::Vector{T}, dims::Vararg{Int, N}) where {T<:AbstractFloat} where {N}
+    marsaglia_generate!(Array{Int}(undef, dims), K, V)
 end
-marsaglia_generate_simd!(A::AbstractArray, K::Vector{Int}, V::Vector{<:AbstractFloat}) = marsaglia_generate_simd!(A, rand(length(A)), K, V)
-
-
 
 function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int}, p::Vector{T}) where {T<:AbstractFloat}
     (length(K) == length(V) == length(q) == length(ix) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
@@ -163,15 +153,15 @@ C = Vector{Int}(undef, n_samples);
 [[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
 
 
-# faster than nearly-divisionless? -- in fact, both are.
-p = fill(1/10000, 10000);
-K, V = marsaglia(p);
-r = 1:10000
-@benchmark rand!($C, $r)
-x = rand(1024);
-@benchmark rand!($x)
-1024 / 2e-6
+# # faster than nearly-divisionless? -- in fact, both are.
+# p = fill(1/10000, 10000);
+# K, V = marsaglia(p);
+# r = 1:10000
+# @benchmark rand!($C, $r)
+# x = rand(1024);
+# @benchmark rand!($x)
+# 1024 / 2e-6
 
-Σp = cumsum(p);
-U = rand(length(C));
-@benchmark categorical!($C, $U, $Σp)
+# Σp = cumsum(p);
+# U = rand(length(C));
+# @benchmark categorical!($C, $U, $Σp)
