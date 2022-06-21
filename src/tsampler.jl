@@ -37,14 +37,16 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{T}()
+        K, V = Vector{Int}(), Vector{T}()
+        ix, q = Vector{Int}(), Vector{T}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for (Iₛ, ω) ∈ a
-                resize!(Σω, length(ω))
-                cumsum!(Σω, ω)
-                categorical!(C, U, Σω)
+                n = length(ω)
+                resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+                marsaglia!(K, V, q, ix, ω)
+                marsaglia_generate!(C, U, K, V)
                 for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
@@ -70,13 +72,15 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int},
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{T}()
+        K, V = Vector{Int}(), Vector{T}()
+        ix, q = Vector{Int}(), Vector{T}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             Iₛ, ω = A[IA]
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            categorical!(C, U, Σω)
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -113,17 +117,12 @@ function tsample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::
     L = stop - start + 1
     if L ≤ 1048576
         Iₛ, ω = A
-        k = length(ω)
-        Σω = cumsum(ω)
-        s₀ = Σω[1]
+        K, V = marsaglia(ω)
+        n = length(K)
         @inbounds for j ∈ 𝒥
             u = rand()
-            c = 1
-            s = s₀
-            while s < u && c < k
-                c += 1
-                s = Σω[c]
-            end
+            j′ = floor(Int, muladd(u, n, 1))
+            c = u < V[j′] ? j′ : K[j′]
             B[Iₛ[c], j] += one(S)
         end
         return B
@@ -145,15 +144,24 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     L = stop - start + 1
     if L ≤ 1024
         C = Vector{Int}(undef, L)
+        U = Vector{Float64}(undef, L)
+        K, V = Vector{Int}(), Vector{Float64}()
+        ix, q = Vector{Int}(), Vector{Float64}()
+        ω = Vector{Float64}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for Iₛ ∈ a
-                rand!(C, Iₛ)
+                n = length(Iₛ)
+                resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+                resize!(ω, n)
+                fill!(ω, inv(n))
+                marsaglia!(K, V, q, ix, ω)
+                marsaglia_generate!(C, U, K, V)
                 for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
-                    B[c, j, IR] += one(S)
+                    B[Iₛ[c], j, IR] += one(S)
                 end
             end
         end
@@ -174,14 +182,23 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, k
     L = stop - start + 1
     if L ≤ 1024
         C = Vector{Int}(undef, L)
+        U = Vector{Float64}(undef, L)
+        K, V = Vector{Int}(), Vector{Float64}()
+        ix, q = Vector{Int}(), Vector{Float64}()
+        ω = Vector{Float64}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             Iₛ = A[IA]
-            rand!(C, Iₛ)
+            n = length(Iₛ)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            resize!(ω, n)
+            fill!(ω, inv(n))
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
-                B[c, j, IR] += one(S)
+                B[Iₛ[c], j, IR] += one(S)
             end
         end
         return B
@@ -229,9 +246,13 @@ function tsample!(B::AbstractMatrix{S}, A::Vector{Int}, 𝒥::UnitRange{Int}) wh
     (; start, stop) = 𝒥
     L = stop - start + 1
     if L ≤ 1048576
+        n = length(A)
+        K, V = marsaglia(fill(inv(n), n))
         @inbounds for j ∈ 𝒥
-            c = rand(A)
-            B[c, j] += one(S)
+            u = rand()
+            j′ = floor(Int, muladd(u, n, 1))
+            c = u < V[j′] ? j′ : K[j′]
+            B[A[c], j] += one(S)
         end
         return B
     else
@@ -253,14 +274,16 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{T}()
+        K, V = Vector{Int}(), Vector{T}()
+        ix, q = Vector{Int}(), Vector{T}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for ω ∈ a
-                resize!(Σω, length(ω))
-                cumsum!(Σω, ω)
-                categorical!(C, U, Σω)
+                n = length(ω)
+                resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+                marsaglia!(K, V, q, ix, ω)
+                marsaglia_generate!(C, U, K, V)
                 for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
@@ -286,13 +309,15 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, kee
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{T}()
+        K, V = Vector{Int}(), Vector{T}()
+        ix, q = Vector{Int}(), Vector{T}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             ω = A[IA]
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            categorical!(C, U, Σω)
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -329,17 +354,12 @@ function tsample!(B::AbstractMatrix{S}, A::Vector{T}, 𝒥::UnitRange{Int}) wher
     L = stop - start + 1
     if L ≤ 1048576
         ω = A
-        k = length(ω)
-        Σω = cumsum(ω)
-        s₀ = Σω[1]
+        K, V = marsaglia(ω)
+        n = length(K)
         @inbounds for j ∈ 𝒥
             u = rand()
-            c = 1
-            s = s₀
-            while s < u && c < k
-                c += 1
-                s = Σω[c]
-            end
+            j′ = floor(Int, muladd(u, n, 1))
+            c = u < V[j′] ? j′ : K[j′]
             B[c, j] += one(S)
         end
         return B
@@ -362,16 +382,18 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, defau
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{Tv}()
+        K, V = Vector{Int}(), Vector{Tv}()
+        ix, q = Vector{Int}(), Vector{Tv}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             a = A[IA]
             for sv ∈ a
                 (; n, nzind, nzval) = sv
                 Iₛ, ω = nzind, nzval
-                resize!(Σω, length(ω))
-                cumsum!(Σω, ω)
-                categorical!(C, U, Σω)
+                n = length(ω)
+                resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+                marsaglia!(K, V, q, ix, ω)
+                marsaglia_generate!(C, U, K, V)
                 for l ∈ eachindex(C, 𝒥)
                     c = C[l]
                     j = 𝒥[l]
@@ -397,15 +419,17 @@ function tsample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, T
     if L ≤ 1024
         C = Vector{Int}(undef, L)
         U = Vector{Float64}(undef, L)
-        Σω = Vector{Tv}()
+        K, V = Vector{Int}(), Vector{Tv}()
+        ix, q = Vector{Int}(), Vector{Tv}()
         @inbounds for IA ∈ CartesianIndices(A)
             IR = Broadcast.newindex(IA, keep, default)
             sv = A[IA]
             (; n, nzind, nzval) = sv
             Iₛ, ω = nzind, nzval
-            resize!(Σω, length(ω))
-            cumsum!(Σω, ω)
-            categorical!(C, U, Σω)
+            n = length(ω)
+            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            marsaglia!(K, V, q, ix, ω)
+            marsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -443,17 +467,12 @@ function tsample!(B::AbstractMatrix{S}, A::SparseVector{T}, 𝒥::UnitRange{Int}
     if L ≤ 1048576
         (; n, nzind, nzval) = A
         Iₛ, ω = nzind, nzval
-        k = length(ω)
-        Σω = cumsum(ω)
-        s₀ = Σω[1]
+        K, V = marsaglia(ω)
+        n = length(K)
         @inbounds for j ∈ 𝒥
             u = rand()
-            c = 1
-            s = s₀
-            while s < u && c < k
-                c += 1
-                s = Σω[c]
-            end
+            j′ = floor(Int, muladd(u, n, 1))
+            c = u < V[j′] ? j′ : K[j′]
             B[Iₛ[c], j] += one(S)
         end
         return B
