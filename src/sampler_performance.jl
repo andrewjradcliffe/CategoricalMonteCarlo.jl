@@ -187,3 +187,26 @@ n_sim = 10^4
 @timev B = sample(Int, Z, n_sim, dims=(1,2,3));
 @timev sample!(B, Z);
 @timev sample2!(B, Z);
+
+################################################################
+# Marsaglia square histogram
+A = ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])
+n_sim = 10^3
+B = sample(Int, A, n_sim, num_cat(A), (1,));
+@benchmark sample!($B, $A)
+
+@benchmark sample_mars!($B, $A)
+@benchmark sample_mars2!($B, $A)
+@benchmark sample_mars3!($B, $A)
+
+#### Marsaglia, larger arrays
+Z = fill(A, 100,50,50);
+n_sim = 10^4;
+B = sample(Int, Z, n_sim, dims=:);
+@timev sample!(B, Z);
+@timev sample_mars!(B, Z);
+@timev sample_mars2!(B, Z);
+
+E = zeros(Int, reverse(size(B)));
+@timev sample_mars_dim1!(E, Z);
+@timev sample_mars_dim1_4!(E, Z);
