@@ -33,6 +33,7 @@ function vmarsaglia4(p::Vector{T}) where {T<:AbstractFloat}
     N = length(p)
     K = Vector{Int}(undef, N)
     V = Vector{promote_type(T, Float64)}(undef, N)
+    q = similar(p)
     a = inv(N)
     # initialize
     for i ∈ eachindex(K, V, p, q)

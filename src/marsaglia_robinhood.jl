@@ -34,28 +34,72 @@
 #     - Number of samples to be drawn is an orthogonal decision variable;
 #       one surmises that increasing number of samples favor better table.
 
+# function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
+#     N = length(p)
+#     K = Vector{Int}(undef, N)
+#     V = Vector{promote_type(T, Float64)}(undef, N)
+#     ix = Vector{Int}(undef, N)
+#     q = similar(p)
+#     a = inv(N)
+#     # initialize
+#     for i ∈ eachindex(K, V, p, q)
+#         K[i] = i
+#         V[i] = i * a
+#         q[i] = p[i]
+#     end
+#     for _ = 1:N-1
+#         sortperm!(ix, q)
+#         i = ix[1]
+#         j = ix[N]
+#         K[i] = j
+#         V[i] = (i - 1) * a + q[i]
+#         q[j] = (q[j] + q[i]) - a # q[j] - (a - q[i])
+#         q[i] = a
+#     end
+#     K, V
+# end
+
 function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     N = length(p)
     K = Vector{Int}(undef, N)
     V = Vector{promote_type(T, Float64)}(undef, N)
-    ix = Vector{Int}(undef, N)
     q = similar(p)
     a = inv(N)
     # initialize
     for i ∈ eachindex(K, V, p, q)
         K[i] = i
-        # V[i] = (i + 1) * a
         V[i] = i * a
         q[i] = p[i]
     end
     for _ = 1:N-1
-        sortperm!(ix, q)
-        i = ix[1]
-        j = ix[N]
+        qᵢ, i = findmin(q)
+        qⱼ, j = findmax(q)
         K[i] = j
-        V[i] = (i - 1) * a + q[i]
-        # V[i] = i * a + q[i]
-        q[j] = (q[j] + q[i]) - a # q[j] - (a - q[i])
+        V[i] = (i - 1) * a + qᵢ
+        q[j] = (qⱼ + qᵢ) - a
+        q[i] = a
+    end
+    K, V
+end
+
+function vmarsaglia(p::Vector{T}) where {T<:AbstractFloat}
+    N = length(p)
+    K = Vector{Int}(undef, N)
+    V = Vector{promote_type(T, Float64)}(undef, N)
+    a = inv(N)
+    q = similar(p)
+    # initialize
+    for i ∈ eachindex(K, V, p, q)
+        K[i] = i
+        V[i] = i * a
+        q[i] = p[i]
+    end
+    for _ = 1:N-1
+        qᵢ, i = vfindmin(q)
+        qⱼ, j = vfindmax(q)
+        K[i] = j
+        V[i] = (i - 1) * a + qᵢ
+        q[j] = (qⱼ + qᵢ) - a
         q[i] = a
     end
     K, V
@@ -124,8 +168,8 @@ function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int},
         i = ix[1]
         j = ix[N]
         K[i] = j
-        V[i] = (i - 1) * a + q[i]
-        q[j] = (q[j] + q[i]) - a
+        V[i] = (i - 1) * a + qᵢ
+        q[j] = (qⱼ + qᵢ) - a
         q[i] = a
     end
     K, V
@@ -133,6 +177,45 @@ end
 marsaglia2(p::Vector{T}) where {T<:AbstractFloat} =
     (N = length(p); marsaglia!(Vector{Int}(undef, N), Vector{promote_type(T, Float64)}(undef, N), similar(p), Vector{Int}(undef, N), p))
 
+function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
+    (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
+    N = length(p)
+    a = inv(N)
+    @inbounds for i ∈ eachindex(K, V, p, q)
+        K[i] = i
+        V[i] = i * a
+        q[i] = p[i]
+    end
+    for _ = 1:N-1
+        qᵢ, i = findmin(q)
+        qⱼ, j = findmax(q)
+        K[i] = j
+        V[i] = (i - 1) * a + qᵢ
+        q[j] = (qⱼ + qᵢ) - a
+        q[i] = a
+    end
+    K, V
+end
+
+function vmarsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
+    (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
+    N = length(p)
+    a = inv(N)
+    @inbounds for i ∈ eachindex(K, V, p, q)
+        K[i] = i
+        V[i] = i * a
+        q[i] = p[i]
+    end
+    for _ = 1:N-1
+        qᵢ, i = vfindmin(q)
+        qⱼ, j = vfindmax(q)
+        K[i] = j
+        V[i] = (i - 1) * a + qᵢ
+        q[j] = (qⱼ + qᵢ) - a
+        q[i] = a
+    end
+    K, V
+end
 
 # faster, but not necessarily the method to use due to LoopVectorization and Base.Threads
 # alas, it is ≈5x faster
@@ -185,6 +268,7 @@ end
 
 ################
 # convenience utils
+@inline _marsaglia_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n), Vector{Int}(undef, n), Vector{T}(undef, n)
 @inline _marsaglia_init(T::Type{<:AbstractFloat}) = Vector{Int}(undef, 0), Vector{T}(undef, 0), Vector{Int}(undef, 0), Vector{T}(undef, 0)
 @inline _marsaglia_init() = _marsaglia_init(Float64)
 
