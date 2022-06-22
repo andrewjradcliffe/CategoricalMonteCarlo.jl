@@ -168,8 +168,8 @@ function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int},
         i = ix[1]
         j = ix[N]
         K[i] = j
-        V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        V[i] = (i - 1) * a + q[i]
+        q[j] = (q[j] + q[i]) - a
         q[i] = a
     end
     K, V
