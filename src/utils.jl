@@ -64,3 +64,35 @@ end
     n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
     true
 end
+
+
+################################################################
+"""
+    splitranges(start, stop, chunksize)
+
+Divide the range `start:stop` into segments, each of size `chunksize`.
+The last segment will contain the remainder, `(start - stop + 1) % chunksize`,
+if it exists.
+"""
+function splitranges(start::Int, stop::Int, Lc::Int)
+    L = stop - start + 1
+    n, r = divrem(L, Lc)
+    ranges = Vector{UnitRange{Int}}(undef, r == 0 ? n : n + 1)
+    l = start
+    @inbounds for i = 1:n
+        l′ = l
+        l += Lc
+        ranges[i] = l′:(l - 1)
+    end
+    if r != 0
+        @inbounds ranges[n + 1] = (stop - r + 1):stop
+    end
+    return ranges
+end
+
+"""
+    splitranges(ur::UnitRange{Int}, chunksize)
+
+Divide the range `ur` into segments, each of size `chunksize`.
+"""
+splitranges(ur::UnitRange{Int}, Lc::Int) = splitranges(ur.start, ur.stop, Lc)
