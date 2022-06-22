@@ -218,6 +218,7 @@ E = zeros(Int, reverse(size(B)));
 @timev sample_mars_dim1_4!(E, Z);
 
 a = [1,2,3,4,5,6]
+D′ = fill(a, 100,50,50);
 @benchmark sample_orderN!($B, $a)
 @benchmark sample!($B, $a)
 @benchmark vsample!($B, $a)
@@ -233,6 +234,25 @@ using Polyester
 using VectorizationBase, Static
 VectorizationBase.num_cores() = static(48)
 B2 = zeros(Int, 6, 10^5);
-@timev vtsample_poly!(B2, D′, 10^4);
-@timev vtsample_poly!(B2, D′, 2 * 10^4);
-@timev vtsample_poly!(B′, D′, 2 * 10^4);
+@timev vtsample!(B2, D′, 10^4);
+@timev vtsample!(B2, D′, 2 * 10^4);
+@timev vtsample!(B′, D′, 2 * 10^4);
+
+
+@timev vtsample!(B2, Z, chunksize=5000)
+# 1.
+using Random
+using LoopVectorization
+using Polyester
+using SparseArrays
+# 2. include's
+# 3.
+using VectorizationBase, Static
+VectorizationBase.num_cores() = static(48)
+
+B = zeros(Int, 6, 1000000);
+v2 = [[1,2,3,4], [1,2,3,4,5,6]]
+B2 =  vtsample(Int, v2, 10^4, chunksize=500)
+@code_warntype vtsample!(B2, [[.5, .5], [.2, .8]], 500)
+@timev vtsample(Int, [.5, .5], 10000, chunksize=500)
+@timev vtsample(Int, [1,2], 10000, chunksize=500)

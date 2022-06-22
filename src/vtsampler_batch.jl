@@ -215,7 +215,7 @@ function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep,
 end
 
 # A simplification: an array of dense vectors
-function vtsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
     K, V, ix, q = _marsaglia_init(T)
@@ -244,7 +244,7 @@ function vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon, chun
     vtsample!(B, A, chunksize)
 end
 
-function vtsample!(B::AbstractMatrix, A::Vector{<:AbstractFloat}, chunksize::Int)
+function vtsample!(B::AbstractMatrix, A::Vector{T}, chunksize::Int) where {T<:AbstractFloat}
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
@@ -253,9 +253,9 @@ function vtsample!(B::AbstractMatrix, A::Vector{<:AbstractFloat}, chunksize::Int
     return B
 end
 
-function vsample_chunk!(B::AbstractMatrix{S}, A::Vector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+function vsample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     L = length(𝒥)
-    ω = A
+    ω = copyto!(similar(A), A)#A
     K, V = marsaglia(ω)
     C = vmarsaglia_generate!(Vector{Int}(undef, L), K, V)
     @inbounds for l ∈ eachindex(C, 𝒥)
@@ -265,7 +265,6 @@ function vsample_chunk!(B::AbstractMatrix{S}, A::Vector{T}, 𝒥::UnitRange{Int}
     end
     return B
 end
-
 
 ################
 # General case: sparse vectors, the nzval of which indicates the category
