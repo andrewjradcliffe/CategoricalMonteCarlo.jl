@@ -7,7 +7,7 @@
 # mirror of sampler.jl; separate file for variants on threading
 
 # The bare minimum for `sample` interface-- covers all 4 other definitions.
-tsample(::Type{S}, A, n_sim, n_cat; dims=:, chunksize=5000) where {S} = tsample(S, A, n_sim, n_cat, dims)
+tsample(::Type{S}, A, n_sim, n_cat; dims=:, chunksize=5000) where {S} = tsample(S, A, n_sim, n_cat, dims, chunksize)
 tsample(::Type{S}, A, n_sim; dims=:, chunksize=5000) where {S} = tsample(S, A, n_sim, num_cat(A), dims, chunksize)
 tsample(::Type{S}, A, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S} = tsample(S, A, n_sim, n_cat, (dims,), chunksize)
 

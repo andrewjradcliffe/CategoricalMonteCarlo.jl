@@ -7,7 +7,7 @@
 # mirror of sampler.jl; separate file for variants on threading
 
 # The bare minimum for `sample` interface-- covers all 4 other definitions.
-vtsample(::Type{S}, A, n_sim, n_cat; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, n_cat, dims)
+vtsample(::Type{S}, A, n_sim, n_cat; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, n_cat, dims, chunksize)
 vtsample(::Type{S}, A, n_sim; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, num_cat(A), dims, chunksize)
 vtsample(::Type{S}, A, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S} = vtsample(S, A, n_sim, n_cat, (dims,), chunksize)
 
@@ -176,7 +176,7 @@ function vtsample!(B::AbstractMatrix, A::Vector{Int}, chunksize::Int)
     return B
 end
 
-function vsample_chunk!(B::AbstractMatrix{S}, A::Vector{Int}, 𝒥::UnitRange{Int}) where {S<:Real}
+function vsample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{Int}, 𝒥::UnitRange{Int}) where {S<:Real}
     L = length(𝒥)
     Iₛ = A
     n = length(Iₛ)
