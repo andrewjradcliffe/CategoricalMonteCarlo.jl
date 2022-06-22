@@ -44,11 +44,11 @@ function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     K, V
 end
 
-p = [0.2, 0.3, 0.1, 0.4]
+# p = [0.2, 0.3, 0.1, 0.4]
 
-p = [.21, .18, .26, .17, .18]
+# p = [.21, .18, .26, .17, .18]
 
-p = [2/15, 7/15, 6/15]
+# p = [2/15, 7/15, 6/15]
 
 function marsaglia_generate(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     N = length(K)
@@ -57,16 +57,16 @@ function marsaglia_generate(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloa
     u < V[j] ? j : K[j]
 end
 
-using BenchmarkTools, Random
+# using BenchmarkTools, Random
 
-K, V = marsaglia(p)
-@benchmark marsaglia_generate($K, $V)
-@benchmark marsaglia_generate2($K, $V)
-@benchmark marsaglia_generate3($K, $V)
+# K, V = marsaglia(p)
+# @benchmark marsaglia_generate($K, $V)
+# @benchmark marsaglia_generate2($K, $V)
+# @benchmark marsaglia_generate3($K, $V)
 
-p = rand(100);
-normalize1!(p);
-K, V = marsaglia(p);
+# p = rand(100);
+# normalize1!(p);
+# K, V = marsaglia(p);
 
 function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
@@ -140,17 +140,17 @@ function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Ve
     A
 end
 
-n_samples = 1024
-C = Vector{Int}(undef, n_samples);
-@benchmark marsaglia_generate!($C, $K, $V)
-@benchmark marsaglia_generate_simd!($C, $K, $V)
-@benchmark marsaglia_generate2!($C, $K, $V)
-@benchmark marsaglia_generate3!($C, $K, $V)
-@benchmark marsaglia_generate4!($C, $K, $V)
-@benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
-@benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
-@benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
-[[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
+# n_samples = 1024
+# C = Vector{Int}(undef, n_samples);
+# @benchmark marsaglia_generate!($C, $K, $V)
+# @benchmark marsaglia_generate_simd!($C, $K, $V)
+# @benchmark marsaglia_generate2!($C, $K, $V)
+# @benchmark marsaglia_generate3!($C, $K, $V)
+# @benchmark marsaglia_generate4!($C, $K, $V)
+# @benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
+# @benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
+# @benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
+# [[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
 
 
 # # faster than nearly-divisionless? -- in fact, both are.
