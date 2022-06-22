@@ -51,14 +51,14 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, ω) ∈ a
             n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
+            resize!(K, n); resize!(V, n); resize!(q, n)
+            marsaglia!(K, V, q, ω)
             marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -74,13 +74,13 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ, ω = A[IA]
         n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
+        resize!(K, n); resize!(V, n); resize!(q, n)
+        marsaglia!(K, V, q, ω)
         marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
@@ -120,17 +120,17 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init()
+    K, V, q = _marsaglia_init()
     ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+            resize!(K, n); resize!(V, n); resize!(q, n)
             resize!(ω, n)
             fill!(ω, inv(n))
-            marsaglia!(K, V, q, ix, ω)
+            marsaglia!(K, V, q, ω)
             marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -146,16 +146,16 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init()
+    K, V, q = _marsaglia_init()
     ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
+        resize!(K, n); resize!(V, n); resize!(q, n)
         resize!(ω, n)
         fill!(ω, inv(n))
-        marsaglia!(K, V, q, ix, ω)
+        marsaglia!(K, V, q, ω)
         marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
@@ -192,14 +192,14 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for ω ∈ a
             n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
+            resize!(K, n); resize!(V, n); resize!(q, n)
+            marsaglia!(K, V, q, ω)
             marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -215,13 +215,13 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) wher
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         ω = A[IA]
         n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
+        resize!(K, n); resize!(V, n); resize!(q, n)
+        marsaglia!(K, V, q, ω)
         marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
@@ -261,7 +261,7 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init(Tv)
+    K, V, q = _marsaglia_init(Tv)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
@@ -269,8 +269,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             (; n, nzind, nzval) = sv
             Iₛ, ω = nzind, nzval
             n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
+            resize!(K, n); resize!(V, n); resize!(q, n)
+            marsaglia!(K, V, q, ω)
             marsaglia_generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -286,15 +286,15 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, ix, q = _marsaglia_init(Tv)
+    K, V, q = _marsaglia_init(Tv)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
         (; n, nzind, nzval) = sv
         Iₛ, ω = nzind, nzval
         n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
+        resize!(K, n); resize!(V, n); resize!(q, n)
+        marsaglia!(K, V, q, ω)
         marsaglia_generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
