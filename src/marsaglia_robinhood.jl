@@ -5,17 +5,34 @@
 #
 ############################################################################################
 # https://www.jstatsoft.org/article/view/v011i03
-# Marsaglia's Robin Hood
+#### Marsaglia's Square Histogram (Method II in the above article)
 # p ∈ ℝᴺ, ∑ᵢpᵢ = 1, a = 1/N
 # K ∈ ℕᴺ, Kᵢ = i
-# V ∈ ℝⁿ, Vᵢ = (i + 1) * a
-# Generate: j = ⌊N*U⌋; if U < V[j], return j, else return K[j]
-# it happens to not be faster to avoid the floor(Int, N * U), generating j=rand(1:N), and U=rand()
-# separately.
+# V ∈ ℝⁿ, Vᵢ = i * a
+# Generate: j = ⌊N*U+1⌋; if U < V[j], return j, else return K[j]
+# Theoretically, just one U ~ Uniform(0,1) is sufficient. In practice, it is also faster as
+#     U=rand(); j=floor(Int, N * U + 1)
+# is far fewer instructions than
+#     j=rand(1:N); U=rand()
+#### Robin Hood
+## Motivation
+# The frequency of the `else` statement being required is proportional to the "over-area",
+# i.e. the part of the final squared histogram that lies above the division points.
+# Or, to quantify it: ∑ᵢ (i * a) - V[i]
 # The objective is to minimize the number of times the `else return K[j]` occurs
-# by creating V such that each V[j] is as close to 1 as possible -- an NP-hard problem,
-# but Marsaglia's suggestion of the Robin Hood method (rob from rich to bring poor up to average)
-# is a good solution which is 𝒪(NlogN).
+# by creating V such that each V[j] is as close to j/N as possible -- an NP-hard problem.
+# Marsaglia's suggestion of the Robin Hood method is a good solution which is 𝒪(NlogN).
+## Thoughts
+# The reduction in `else` statements leads to faster sampling -- 𝒪(1) regardless --
+# as it would certainly lead to a more predictable instruction pipeline due to minimizing
+# the number of times the `else` branch is executed (or used, even if executed).
+# Does it justify the 𝒪(NlogN) construction cost for the alias tables? -- given
+# that we could pay 𝒪(N) instead to construct an inferior table (but no limit on how terrible).
+#     - An analysis based on the objective function above would be informative;
+#       can be verified with Monte Carlo: compute 𝒻(𝐱) = ∑ᵢ (i * a) - V[i]
+#       using the V produced by each procedure.
+#     - Number of samples to be drawn is an orthogonal decision variable;
+#       one surmises that increasing number of samples favor better table.
 
 function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     N = length(p)
