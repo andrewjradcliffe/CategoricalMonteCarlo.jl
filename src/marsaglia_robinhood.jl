@@ -154,28 +154,28 @@ function marsaglia_generate(K::Vector{Int}, V::Vector{T}, dims::Vararg{Int, N}) 
     marsaglia_generate!(Array{Int}(undef, dims), K, V)
 end
 
-function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int}, p::Vector{T}) where {T<:AbstractFloat}
-    (length(K) == length(V) == length(q) == length(ix) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
-    N = length(p)
-    a = inv(N)
-    @inbounds for i ∈ eachindex(K, V, p, q)
-        K[i] = i
-        V[i] = i * a
-        q[i] = p[i]
-    end
-    for _ = 1:N-1
-        sortperm!(ix, q)
-        i = ix[1]
-        j = ix[N]
-        K[i] = j
-        V[i] = (i - 1) * a + q[i]
-        q[j] = (q[j] + q[i]) - a
-        q[i] = a
-    end
-    K, V
-end
-marsaglia2(p::Vector{T}) where {T<:AbstractFloat} =
-    (N = length(p); marsaglia!(Vector{Int}(undef, N), Vector{promote_type(T, Float64)}(undef, N), similar(p), Vector{Int}(undef, N), p))
+# function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int}, p::Vector{T}) where {T<:AbstractFloat}
+#     (length(K) == length(V) == length(q) == length(ix) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
+#     N = length(p)
+#     a = inv(N)
+#     @inbounds for i ∈ eachindex(K, V, p, q)
+#         K[i] = i
+#         V[i] = i * a
+#         q[i] = p[i]
+#     end
+#     for _ = 1:N-1
+#         sortperm!(ix, q)
+#         i = ix[1]
+#         j = ix[N]
+#         K[i] = j
+#         V[i] = (i - 1) * a + q[i]
+#         q[j] = (q[j] + q[i]) - a
+#         q[i] = a
+#     end
+#     K, V
+# end
+# marsaglia2(p::Vector{T}) where {T<:AbstractFloat} =
+#     (N = length(p); marsaglia!(Vector{Int}(undef, N), Vector{promote_type(T, Float64)}(undef, N), similar(p), Vector{Int}(undef, N), p))
 
 function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
     (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
@@ -268,8 +268,8 @@ end
 
 ################
 # convenience utils
-@inline _marsaglia_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n), Vector{Int}(undef, n), Vector{T}(undef, n)
-@inline _marsaglia_init(T::Type{<:AbstractFloat}) = Vector{Int}(undef, 0), Vector{T}(undef, 0), Vector{Int}(undef, 0), Vector{T}(undef, 0)
+@inline _marsaglia_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n), Vector{T}(undef, n)
+@inline _marsaglia_init(T::Type{<:AbstractFloat}) = _marsaglia_init(T, 0)
 @inline _marsaglia_init() = _marsaglia_init(Float64)
 
 @inline _genstorage_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n)
