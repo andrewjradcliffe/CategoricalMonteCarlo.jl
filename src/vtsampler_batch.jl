@@ -38,14 +38,14 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, ω) ∈ a
             n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
+            resize!(K, n); resize!(V, n); resize!(q, n)
+            vmarsaglia!(K, V, q, ω)
             vmarsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
@@ -61,13 +61,13 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ, ω = A[IA]
         n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
+        resize!(K, n); resize!(V, n); resize!(q, n)
+        vmarsaglia!(K, V, q, ω)
         vmarsaglia_generate!(C, U, K, V)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
@@ -115,18 +115,19 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init()
-    ω = Vector{Float64}()
+    # K, V, q = _marsaglia_init()
+    # ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            resize!(ω, n)
-            fill!(ω, inv(n))
-            marsaglia!(K, V, q, ix, ω)
-            vmarsaglia_generate!(C, U, K, V)
+            # resize!(K, n); resize!(V, n); resize!(q, n)
+            # resize!(ω, n)
+            # fill!(ω, inv(n))
+            # vmarsaglia!(K, V, q, ω)
+            # vmarsaglia_generate!(C, U, K, V)
+            vmarsaglia_generate!(C, U, n)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -141,17 +142,18 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init()
-    ω = Vector{Float64}()
+    # K, V, q = _marsaglia_init()
+    # ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        resize!(ω, n)
-        fill!(ω, inv(n))
-        marsaglia!(K, V, q, ix, ω)
-        vmarsaglia_generate!(C, U, K, V)
+        # resize!(K, n); resize!(V, n); resize!(q, n)
+        # resize!(ω, n)
+        # fill!(ω, inv(n))
+        # vmarsaglia!(K, V, q, ω)
+        # vmarsaglia_generate!(C, U, K, V)
+        vmarsaglia_generate!(C, U, n)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
             j = 𝒥[l]
@@ -180,8 +182,9 @@ function vsample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{Int}, 𝒥::Unit
     L = length(𝒥)
     Iₛ = A
     n = length(Iₛ)
-    K, V = marsaglia(fill(inv(n), n))
-    C = vmarsaglia_generate!(Vector{Int}(undef, L), K, V)
+    # K, V = marsaglia(fill(inv(n), n))
+    # C = vmarsaglia_generate!(Vector{Int}(undef, L), K, V)
+    C = vmarsaglia_generate!(Vector{Int}(undef, L), n)
     @inbounds for l ∈ eachindex(C, 𝒥)
         c = C[l]
         j = 𝒥[l]
@@ -195,14 +198,14 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for ω ∈ a
             n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
+            resize!(K, n); resize!(V, n); resize!(q, n)
+            vmarsaglia!(K, V, q, ω)
             vmarsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
@@ -218,13 +221,13 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _marsaglia_init(T)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         ω = A[IA]
         n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
+        resize!(K, n); resize!(V, n); resize!(q, n)
+        vmarsaglia!(K, V, q, ω)
         vmarsaglia_generate!(C, U, K, V)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
@@ -271,7 +274,7 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(Tv)
+    K, V, q = _marsaglia_init(Tv)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
@@ -279,8 +282,8 @@ function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep,
             (; n, nzind, nzval) = sv
             Iₛ, ω = nzind, nzval
             n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
+            resize!(K, n); resize!(V, n); resize!(q, n)
+            vmarsaglia!(K, V, q, ω)
             vmarsaglia_generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
@@ -296,15 +299,15 @@ end
 function vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(Tv)
+    K, V, q = _marsaglia_init(Tv)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
         (; n, nzind, nzval) = sv
         Iₛ, ω = nzind, nzval
         n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
+        resize!(K, n); resize!(V, n); resize!(q, n)
+        vmarsaglia!(K, V, q, ω)
         vmarsaglia_generate!(C, U, K, V)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]

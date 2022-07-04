@@ -118,18 +118,19 @@ function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:R
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init()
-    ω = Vector{Float64}()
+    # K, V, q = _marsaglia_init()
+    # ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
-            resize!(K, n); resize!(V, n); resize!(q, n)
-            resize!(ω, n)
-            fill!(ω, inv(n))
-            vmarsaglia!(K, V, q, ω)
-            vmarsaglia_generate!(C, U, K, V)
+            # resize!(K, n); resize!(V, n); resize!(q, n)
+            # resize!(ω, n)
+            # fill!(ω, inv(n))
+            # vmarsaglia!(K, V, q, ω)
+            # vmarsaglia_generate!(C, U, K, V)
+            vmarsaglia_generate!(C, U, n)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
@@ -144,17 +145,18 @@ function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) w
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init()
-    ω = Vector{Float64}()
+    # K, V, q = _marsaglia_init()
+    # ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
-        resize!(K, n); resize!(V, n); resize!(q, n)
-        resize!(ω, n)
-        fill!(ω, inv(n))
-        vmarsaglia!(K, V, q, ω)
-        vmarsaglia_generate!(C, U, K, V)
+        # resize!(K, n); resize!(V, n); resize!(q, n)
+        # resize!(ω, n)
+        # fill!(ω, inv(n))
+        # vmarsaglia!(K, V, q, ω)
+        # vmarsaglia_generate!(C, U, K, V)
+        vmarsaglia_generate!(C, U, n)
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
@@ -171,14 +173,15 @@ end
 
 # Oddly, the fastest vsampler is non-allocating -- most likely due to
 # the elimination of store + access instructions associated with using a temporary array.
-function vsample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
-    _check_reducedims(B, A)
-    n = length(A)
-    K, V = marsaglia(fill(inv(n), n))
-    C = vmarsaglia_generate!(Vector{Int}(undef, size(B, 2)), K, V)
+function vsample!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
+    _check_reducedims(B, Iₛ)
+    n = length(Iₛ)
+    # K, V = marsaglia(fill(inv(n), n))
+    # C = vmarsaglia_generate!(Vector{Int}(undef, size(B, 2)), K, V)
+    C = vmarsaglia_generate!(Vector{Int}(undef, size(B, 2)), n)
     @inbounds for j ∈ axes(B, 2)
         c = C[j]
-        B[A[c], j] += one(S)
+        B[Iₛ[c], j] += one(S)
     end
     B
 end
