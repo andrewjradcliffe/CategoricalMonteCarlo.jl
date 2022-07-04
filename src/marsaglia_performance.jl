@@ -23,7 +23,7 @@ function marsaglia4(p::Vector{T}) where {T<:AbstractFloat}
         qⱼ, j = findmax(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -46,7 +46,7 @@ function vmarsaglia4(p::Vector{T}) where {T<:AbstractFloat}
         qⱼ, j = vfindmax(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -67,7 +67,7 @@ function vmarsaglia5(p::Vector{T}) where {T<:AbstractFloat}
         ((qᵢ, i), (qⱼ, j)) = vfindextrema(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -89,7 +89,7 @@ function vmarsaglia6(p::Vector{T}) where {T<:AbstractFloat}
         ((qᵢ, i), (qⱼ, j)) = vfindextrema(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -138,3 +138,83 @@ K4, V4, q4 = vmarsaglia4(p);
 ii = findall(K2 .!= K4)
 [V0[ii] V[ii] V2[ii] V4[ii]]
 
+#### Generation benchmarks
+using BenchmarkTools, Random
+
+K, V = marsaglia(p)
+@benchmark marsaglia_generate($K, $V)
+@benchmark marsaglia_generate2($K, $V)
+@benchmark marsaglia_generate3($K, $V)
+
+p = rand(100);
+normalize1!(p);
+K, V = marsaglia(p);
+
+n_samples = 1024
+C = Vector{Int}(undef, n_samples);
+@benchmark marsaglia_generate!($C, $K, $V)
+@benchmark marsaglia_generate_simd!($C, $K, $V)
+@benchmark marsaglia_generate2!($C, $K, $V)
+@benchmark marsaglia_generate3!($C, $K, $V)
+@benchmark marsaglia_generate4!($C, $K, $V)
+@benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
+@benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
+@benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
+[[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
+
+
+# faster than nearly-divisionless? -- in fact, both are.
+p = fill(1/10000, 10000);
+K, V = marsaglia(p);
+r = 1:10000
+@benchmark rand!($C, $r)
+x = rand(1024);
+@benchmark rand!($x)
+1024 / 2e-6
+
+Σp = cumsum(p);
+U = rand(length(C));
+@benchmark categorical!($C, $U, $Σp)
+
+
+
+#### Numerical stability tests
+n = 10^3
+p = normalize1!(rand(n));
+p_b = big.(p);
+
+K1, V1 = marsaglia(p);
+K2, V2 = marsaglia2(p);
+vK1, vV1 = vmarsaglia(p);
+bK1, bV1 = marsaglia(p_b);
+bK2, bV2 = marsaglia2(p_b);
+K1 == K2
+V1 == V2
+K1 == vK1
+V1 == vV1
+bV1 == V1
+bV1 == bV2
+bV1 == V2
+bV2 == V2
+count(V1 .== V2)
+count(bV1 .== V1)
+count(bV2 .== V2)
+extrema(V1 .- V2)
+extrema(bV1 .- V1)
+extrema(bV2 .- V2)
+
+sum(abs, bV1 .- V1)
+sum(abs, bV2 .- V2)
+
+# a case which is unstable
+p₁ = 0.999
+# n = 10^4
+for i = 1:10
+    # n = (1 << i)
+    n = 10^i
+    p = [p₁; fill((1.0 - p₁) / n, n)];
+    K1, V1 = marsaglia(p);
+    K2, V2 = marsaglia2(p);
+    @test K1 == K2
+    @test V1 == V2
+end

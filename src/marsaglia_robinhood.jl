@@ -61,32 +61,7 @@
 # These are very permissive bounds; one is likely to run into other issues well before
 # the algorithm becomes numerically unstable.
 
-# function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
-#     N = length(p)
-#     K = Vector{Int}(undef, N)
-#     V = Vector{promote_type(T, Float64)}(undef, N)
-#     ix = Vector{Int}(undef, N)
-#     q = similar(p)
-#     a = inv(N)
-#     # initialize
-#     for i ∈ eachindex(K, V, p, q)
-#         K[i] = i
-#         V[i] = i * a
-#         q[i] = p[i]
-#     end
-#     for _ = 1:N-1
-#         sortperm!(ix, q)
-#         i = ix[1]
-#         j = ix[N]
-#         K[i] = j
-#         V[i] = (i - 1) * a + q[i]
-#         q[j] = (q[j] + q[i]) - a # q[j] - (a - q[i])
-#         q[i] = a
-#     end
-#     K, V
-# end
-
-function marsaglia2(p::Vector{T}) where {T<:AbstractFloat}
+function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     N = length(p)
     K = Vector{Int}(undef, N)
     V = Vector{promote_type(T, Float64)}(undef, N)
@@ -145,17 +120,6 @@ function marsaglia_generate(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloa
     u < V[j] ? j : K[j]
 end
 
-# using BenchmarkTools, Random
-
-# K, V = marsaglia(p)
-# @benchmark marsaglia_generate($K, $V)
-# @benchmark marsaglia_generate2($K, $V)
-# @benchmark marsaglia_generate3($K, $V)
-
-# p = rand(100);
-# normalize1!(p);
-# K, V = marsaglia(p);
-
 function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
     N = length(K)
@@ -180,29 +144,6 @@ end
 function marsaglia_generate(K::Vector{Int}, V::Vector{T}, dims::Vararg{Int, N}) where {T<:AbstractFloat} where {N}
     marsaglia_generate!(Array{Int}(undef, dims), K, V)
 end
-
-# function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, ix::Vector{Int}, p::Vector{T}) where {T<:AbstractFloat}
-#     (length(K) == length(V) == length(q) == length(ix) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
-#     N = length(p)
-#     a = inv(N)
-#     @inbounds for i ∈ eachindex(K, V, p, q)
-#         K[i] = i
-#         V[i] = i * a
-#         q[i] = p[i]
-#     end
-#     for _ = 1:N-1
-#         sortperm!(ix, q)
-#         i = ix[1]
-#         j = ix[N]
-#         K[i] = j
-#         V[i] = (i - 1) * a + q[i]
-#         q[j] = (q[j] + q[i]) - a
-#         q[i] = a
-#     end
-#     K, V
-# end
-# marsaglia2(p::Vector{T}) where {T<:AbstractFloat} =
-#     (N = length(p); marsaglia!(Vector{Int}(undef, N), Vector{promote_type(T, Float64)}(undef, N), similar(p), Vector{Int}(undef, N), p))
 
 function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
     (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
@@ -267,31 +208,9 @@ function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Ve
     A
 end
 
-# n_samples = 1024
-# C = Vector{Int}(undef, n_samples);
-# @benchmark marsaglia_generate!($C, $K, $V)
-# @benchmark marsaglia_generate_simd!($C, $K, $V)
-# @benchmark marsaglia_generate2!($C, $K, $V)
-# @benchmark marsaglia_generate3!($C, $K, $V)
-# @benchmark marsaglia_generate4!($C, $K, $V)
-# @benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
-# @benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
-# @benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
-# [[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
-
-
-# # faster than nearly-divisionless? -- in fact, both are.
-# p = fill(1/10000, 10000);
-# K, V = marsaglia(p);
-# r = 1:10000
-# @benchmark rand!($C, $r)
-# x = rand(1024);
-# @benchmark rand!($x)
-# 1024 / 2e-6
-
-# Σp = cumsum(p);
-# U = rand(length(C));
-# @benchmark categorical!($C, $U, $Σp)
+function vmarsaglia_generate(K::Vector{Int}, V::Vector{T}, dims::Vararg{Int, N}) where {T<:AbstractFloat} where {N}
+    vmarsaglia_generate!(Array{Int}(undef, dims), K, V)
+end
 
 ################
 # convenience utils
