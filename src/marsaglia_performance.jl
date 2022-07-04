@@ -153,14 +153,21 @@ K, V = marsaglia(p);
 n_samples = 1024
 C = Vector{Int}(undef, n_samples);
 @benchmark marsaglia_generate!($C, $K, $V)
-@benchmark marsaglia_generate_simd!($C, $K, $V)
-@benchmark marsaglia_generate2!($C, $K, $V)
-@benchmark marsaglia_generate3!($C, $K, $V)
-@benchmark marsaglia_generate4!($C, $K, $V)
-@benchmark marsaglia_generate5!($C, $K, $V) # 3 with @inbounds
-@benchmark marsaglia_generate6!($C, $K, $V) # 3 with @inbounds
-@benchmark marsaglia_generate7!($C, $K, $V) # 3 with @inbounds
+@benchmark vmarsaglia_generate!($C, $K, $V)
+
+U = similar(C, Float64);
+@benchmark marsaglia_generate!($C, $U, $K, $V)
+@benchmark vmarsaglia_generate!($C, $U, $K, $V)
+
 [[count(==(i), C) for i = 1:length(p)] ./ n_samples p]
+
+# Equal probability comparison
+p = fill(1/100, 100);
+K, V = marsaglia(p);
+@benchmark vmarsaglia_generate!($C, $U, $K, $V)
+@benchmark vmarsaglia_equiprobable!($C, $U, 100)
+ur = 1:100
+@benchmark rand!($C, $ur)
 
 
 # faster than nearly-divisionless? -- in fact, both are.

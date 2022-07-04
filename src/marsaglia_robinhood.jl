@@ -242,3 +242,26 @@ vmarsaglia_generate!(C, U, t::MarsagliaSquareHistogram) = ((; K, V, n) = t; vmar
 vmarsaglia_generate(t::MarsagliaSquareHistogram, dims::Vararg{Int, N}) where {N} =
     vmarsaglia_generate!(Array{Int}(undef, dims), t)
 
+
+################
+# Equal probability case admits an optimized form:
+# U ~ Uniform(0,1)
+# j = ⌊nU + 1⌋; return j
+function vfill!(A::AbstractArray, v::Real)
+    @turbo for i ∈ eachindex(A)
+        A[i] = v
+    end
+    A
+end
+
+function vmarsaglia_equiprobable!(A, u, n::Int)
+    n > 0 || throw(ArgumentError("n must be > 0"))
+    n == 1 && return vfill!(A, 1)
+    rand!(u)
+    @turbo for i ∈ eachindex(A, u)
+        A[i] = trunc(Int, muladd(u[i], n, 1))
+    end
+    A
+end
+
+
