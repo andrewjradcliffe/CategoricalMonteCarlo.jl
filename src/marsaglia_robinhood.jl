@@ -254,7 +254,7 @@ function vfill!(A::AbstractArray, v::Real)
     A
 end
 
-function vmarsaglia_equiprobable!(A, u, n::Int)
+function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, n::Int)
     n > 0 || throw(ArgumentError("n must be > 0"))
     n == 1 && return vfill!(A, 1)
     rand!(u)
@@ -264,4 +264,5 @@ function vmarsaglia_equiprobable!(A, u, n::Int)
     A
 end
 
+vmarsaglia_generate!(A::AbstractArray, n::Int) = vmarsaglia_equiprobable_generate!(A, similar(A, Float64), n)
 
