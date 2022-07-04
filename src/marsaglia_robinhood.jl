@@ -264,5 +264,5 @@ function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, n::In
     A
 end
 
-vmarsaglia_generate!(A::AbstractArray, n::Int) = vmarsaglia_equiprobable_generate!(A, similar(A, Float64), n)
+vmarsaglia_generate!(A::AbstractArray, n::Int) = vmarsaglia_generate!(A, similar(A, Float64), n)
 
