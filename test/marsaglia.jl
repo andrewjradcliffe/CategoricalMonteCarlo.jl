@@ -5,14 +5,20 @@ Random.seed!(1234)
     p = [2/15, 7/15, 6/15]
     K, V = marsaglia(p)
     @test K == [2,3,3]
-    @test V ≈ [2/15, 9/15, 15/15]
+    @test V == [2/15, 9/15, 15/15]
+    p = [2/15, 6/15, 7/15]
+    K, V = marsaglia(p)
+    @test K == [3,2,2]
+    @test V == [2/15, 2/3, 14/15]
+    p = [7/15, 2/15, 6/15]
+    K, V = marsaglia(p)
+    @test K == [3,1,3]
+    @test V == [nextfloat(4/15), 7/15, 1.0]
+    #
     p = [.21, .18, .26, .17, .18]
     K, V = marsaglia(p)
     @test K == [1,3,1,3,3]
-    @test V ≈ [0.2, 0.38, 0.5900000000000001, 0.7700000000000001, 0.98]
-    #
-    p = [2/15, 7/15, 6/15]
-    K, V = marsaglia(p)
+    @test V == [0.2, 0.38, 0.5900000000000001, 0.7700000000000001, 0.98]
     #
     K′, V′ = Vector{Int}(), Vector{Float64}()
     ix, q = Vector{Int}(), Vector{Float64}()
@@ -25,7 +31,25 @@ Random.seed!(1234)
     resize!(V′, 0)
     @test_throws ArgumentError marsaglia!(K′, V′, q, ix, p)
     @test_throws BoundsError marsaglia_generate(K′, V′)
+    #
+    @testset "numerical stability" begin
+        # equal probability
+        for i = 1:10
+            n = 1 << i
+            p = fill(1/n, n)
+            K, V = marsaglia(p)
+            @test K == collect(1:n)
+            @test V == collect(1/n:1/n:1.0)
+        end
+        # cases on the verge of instability
+        p₁ = 0.999
+        n = 1 << i
+        p = [p₁; fill((1.0 - p₁) / n, n)]
+        K, V = marsaglia(p)
+
+    end
 end
+
 
 @testset "Marsaglia: generate" begin
     p = [2/15, 7/15, 6/15]
