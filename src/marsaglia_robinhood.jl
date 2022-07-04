@@ -219,3 +219,26 @@ end
 @inline _marsaglia_init() = _marsaglia_init(Float64)
 
 @inline _genstorage_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n)
+
+################
+# experimental
+
+mutable struct MarsagliaSquareHistogram{Ti<:Integer, Tv<:AbstractFloat}
+    K::Vector{Ti}
+    V::Vector{Tv}
+    n::Int
+end
+
+# MarsagliaSquareHistogram{Ti, Tv}(K, V, n) where {Ti<:Integer, Tv<:AbstractFloat} =
+#     MarsagliaSquareHistogram(convert(Vector{Ti}, K), convert(Vector{Tv}, V), n)
+
+MarsagliaSquareHistogram(K, V) = MarsagliaSquareHistogram(K, V, length(K))
+
+MarsagliaSquareHistogram((K, V), n) = MarsagliaSquareHistogram(K, V, n)
+MarsagliaSquareHistogram(p) = MarsagliaSquareHistogram(marsaglia(p), length(p))
+
+vmarsaglia_generate!(C, t::MarsagliaSquareHistogram) = ((; K, V, n) = t; vmarsaglia_generate!(C, K, V))
+vmarsaglia_generate!(C, U, t::MarsagliaSquareHistogram) = ((; K, V, n) = t; vmarsaglia_generate!(C, U, K, V))
+vmarsaglia_generate(t::MarsagliaSquareHistogram, dims::Vararg{Int, N}) where {N} =
+    vmarsaglia_generate!(Array{Int}(undef, dims), t)
+
