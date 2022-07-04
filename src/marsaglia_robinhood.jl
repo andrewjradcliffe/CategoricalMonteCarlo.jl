@@ -90,6 +90,15 @@
 # f1(big(qⱼ), big(qᵢ), big(a))
 # f2(big(qⱼ), big(qᵢ), big(a))
 # f3(big(qⱼ), big(qᵢ), big(a))
+# # Another example
+# f1(1.0, eps()/2, .0003)
+# f2(1.0, eps()/2, .0003)
+# f2(1.0, big(eps()/2), .0003)
+# isfeq(qⱼ, qᵢ, a) = f1(qⱼ, qᵢ, a) == f2(qⱼ, qᵢ, a)
+# isfeq_big(qⱼ, qᵢ, a) = f1(qⱼ, qᵢ, a) == Float64(f2(big(qⱼ), big(qᵢ), big(a)))
+# count(i -> isfeq(qⱼ, i, a), qᵢ:qᵢ:n*qᵢ)
+# isfeq.(qⱼ, qᵢ:qᵢ:n*qᵢ, a)
+# isfeq_big.(qⱼ, qᵢ:qᵢ:n*qᵢ, a)
 
 function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     n = length(p)
