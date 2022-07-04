@@ -99,7 +99,7 @@ end
 function vsample_chunk!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     L = length(𝒥)
     Iₛ, ω = A
-    K, V = marsaglia(ω)
+    K, V = vmarsaglia(ω)
     C = vmarsaglia_generate!(Vector{Int}(undef, L), K, V)
     @inbounds for l ∈ eachindex(C, 𝒥)
         c = C[l]
@@ -107,6 +107,12 @@ function vsample_chunk!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 
         B[Iₛ[c], j] += one(S)
     end
     return B
+end
+function vsample_chunk!(B::AbstractMatrix{S}, A::Tuple{AbstractVector{Int}, AbstractVector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    Iₛ, ω = A
+    n = length(Iₛ)
+    Iₛω = (copyto!(Vector{Int}(undef, n), Iₛ), copyto!(Vector{T}(undef, n), ω))
+    vsample_chunk!(B, Iₛω, 𝒥)
 end
 
 ################
@@ -258,8 +264,8 @@ end
 
 function vsample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     L = length(𝒥)
-    ω = copyto!(similar(A), A)#A
-    K, V = marsaglia(ω)
+    ω = copyto!(Vector{T}(undef, length(A)), A)
+    K, V = vmarsaglia(ω)
     C = vmarsaglia_generate!(Vector{Int}(undef, L), K, V)
     @inbounds for l ∈ eachindex(C, 𝒥)
         c = C[l]
@@ -340,7 +346,7 @@ function vsample_chunk!(B::AbstractMatrix{S}, A::SparseVector{T}, 𝒥::UnitRang
     L = length(𝒥)
     (; n, nzind, nzval) = A
     Iₛ, ω = nzind, nzval
-    K, V = marsaglia(ω)
+    K, V = vmarsaglia(ω)
     C = vmarsaglia_generate!(Vector{Int}(undef, L), K, V)
     @inbounds for l ∈ eachindex(C, 𝒥)
         c = C[l]
