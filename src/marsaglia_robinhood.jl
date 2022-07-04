@@ -33,6 +33,33 @@
 #       using the V produced by each procedure.
 #     - Number of samples to be drawn is an orthogonal decision variable;
 #       one surmises that increasing number of samples favor better table.
+## Algorithm
+# repeat these two steps N - 1 times
+#     1. find the smallest probability, pᵢ, and the largest probability, pⱼ
+#     2. set K[i] = j; V[i] = (i - 1) * a + pᵢ; replace pⱼ with pⱼ - (a - pᵢ)
+## Numerical stability
+# Replacing pⱼ is the only point at which stability is a real concern. There are a few
+# options for the order of operations and parenthesis. Unsurprisingly, Marsaglia gives
+# the most stable form: pⱼ = pⱼ - (a - pᵢ)
+# But it is worthwhile to show that this is the most stable form.
+#     First, consider that it should be the case that pᵢ ≤ a, hence 0 ≤ (a - pᵢ) ≤ 1/n.
+#     (a - pᵢ) may be a small number, but (a - pᵢ) is always well-defined since it occurs
+#     at eps(a)≡ulp(a).
+# It is worth noting that the (a - pᵢ) operation becomes unstable when pᵢ ≤ eps(a)/4, assuming
+# the worst case, a=1. However, this has the opposite relationship to n: increasing n will
+# result in a subtraction which takes place at smaller values, hence, the (floating)
+# points are more densely packed (i.e. distance to nearest float is smaller).
+# It is reassuring to note that eps(.5) = 2⁻⁵³, hence, even for a vector of length 2,
+# the (a - pᵢ) is stable for pᵢ > 2⁻⁵⁵.
+#     The subsequent subtraction, i.e. pⱼ - (a - pᵢ), will occur at eps(pⱼ)≡ulp(pⱼ). Thus,
+#     the operation will be unstable when pⱼ - c * ulp(pⱼ), c ≤ 1/4 (for pⱼ = 1, the worst case).
+# That is, unstable when: (a - pᵢ) ≤ eps(pⱼ)/4
+# If pᵢ ≈ 0, (a - pᵢ) ≈ 1/n ⟹ 1/n ≤ eps(pⱼ)/4 is unstable
+# As pⱼ is at most 1, the worst case will be eps(pⱼ)/4 = 2⁻⁵⁴, i.e. 1/n ≤ 2⁻⁵⁴.
+# ∴ in the worse case, instability begins at n ≥ 2⁵⁴ if pᵢ ≈ 0.
+# ∴ in general, expect instability if (a - pᵢ) ≤ 2⁻⁵⁴.
+# These are very permissive bounds; one is likely to run into other issues well before
+# the algorithm becomes numerically unstable.
 
 # function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
 #     N = length(p)
@@ -59,7 +86,7 @@
 #     K, V
 # end
 
-function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
+function marsaglia2(p::Vector{T}) where {T<:AbstractFloat}
     N = length(p)
     K = Vector{Int}(undef, N)
     V = Vector{promote_type(T, Float64)}(undef, N)
@@ -76,7 +103,7 @@ function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
         qⱼ, j = findmax(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -99,7 +126,7 @@ function vmarsaglia(p::Vector{T}) where {T<:AbstractFloat}
         qⱼ, j = vfindmax(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -191,7 +218,7 @@ function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) wh
         qⱼ, j = findmax(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
@@ -211,7 +238,7 @@ function vmarsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) w
         qⱼ, j = vfindmax(q)
         K[i] = j
         V[i] = (i - 1) * a + qᵢ
-        q[j] = (qⱼ + qᵢ) - a
+        q[j] = qⱼ - (a - qᵢ)
         q[i] = a
     end
     K, V
