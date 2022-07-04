@@ -62,18 +62,18 @@
 # the algorithm becomes numerically unstable.
 
 function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
-    N = length(p)
-    K = Vector{Int}(undef, N)
-    V = Vector{promote_type(T, Float64)}(undef, N)
+    n = length(p)
+    K = Vector{Int}(undef, n)
+    V = Vector{promote_type(T, Float64)}(undef, n)
     q = similar(p)
-    a = inv(N)
+    a = inv(n)
     # initialize
     for i ∈ eachindex(K, V, p, q)
         K[i] = i
         V[i] = i * a
         q[i] = p[i]
     end
-    for _ = 1:N-1
+    for _ = 1:n-1
         qᵢ, i = findmin(q)
         qⱼ, j = findmax(q)
         K[i] = j
@@ -85,18 +85,18 @@ function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
 end
 
 function vmarsaglia(p::Vector{T}) where {T<:AbstractFloat}
-    N = length(p)
-    K = Vector{Int}(undef, N)
-    V = Vector{promote_type(T, Float64)}(undef, N)
-    a = inv(N)
+    n = length(p)
+    K = Vector{Int}(undef, n)
+    V = Vector{promote_type(T, Float64)}(undef, n)
+    a = inv(n)
     q = similar(p)
     # initialize
-    for i ∈ eachindex(K, V, p, q)
+    @turbo for i ∈ eachindex(K, V, p, q)
         K[i] = i
         V[i] = i * a
         q[i] = p[i]
     end
-    for _ = 1:N-1
+    for _ = 1:n-1
         qᵢ, i = vfindmin(q)
         qⱼ, j = vfindmax(q)
         K[i] = j
@@ -114,28 +114,28 @@ end
 # p = [2/15, 7/15, 6/15]
 
 function marsaglia_generate(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-    N = length(K)
+    n = length(K)
     u = rand()
-    j = floor(Int, muladd(u, N, 1))
+    j = floor(Int, muladd(u, n, 1))
     u < V[j] ? j : K[j]
 end
 
 function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
-    N = length(K)
+    n = length(K)
     @inbounds for i ∈ eachindex(A) # safe to also use @fastmath, @simd
         u = rand()
-        j = floor(Int, muladd(u, N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
+        j = floor(Int, muladd(u, n, 1)) # muladd is faster than u * n + 1 by ≈5-6%
         A[i] = u < V[j] ? j : K[j]
     end
     A
 end
 function marsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
-    N = length(K)
+    n = length(K)
     rand!(u)
     @inbounds for i ∈ eachindex(A, u) # safe to also use @fastmath, @simd
-        j = floor(Int, muladd(u[i], N, 1)) # muladd is faster than u * N + 1 by ≈5-6%
+        j = floor(Int, muladd(u[i], n, 1)) # muladd is faster than u * n + 1 by ≈5-6%
         A[i] = u[i] < V[j] ? j : K[j]
     end
     A
@@ -147,14 +147,14 @@ end
 
 function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
     (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
-    N = length(p)
-    a = inv(N)
+    n = length(p)
+    a = inv(n)
     @inbounds for i ∈ eachindex(K, V, p, q)
         K[i] = i
         V[i] = i * a
         q[i] = p[i]
     end
-    for _ = 1:N-1
+    for _ = 1:n-1
         qᵢ, i = findmin(q)
         qⱼ, j = findmax(q)
         K[i] = j
@@ -167,14 +167,14 @@ end
 
 function vmarsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
     (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
-    N = length(p)
-    a = inv(N)
+    n = length(p)
+    a = inv(n)
     @inbounds for i ∈ eachindex(K, V, p, q)
         K[i] = i
         V[i] = i * a
         q[i] = p[i]
     end
-    for _ = 1:N-1
+    for _ = 1:n-1
         qᵢ, i = vfindmin(q)
         qⱼ, j = vfindmax(q)
         K[i] = j
@@ -189,20 +189,20 @@ end
 # alas, it is ≈5x faster
 function vmarsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
-    N = length(K)
+    n = length(K)
     u = rand(length(A))
     @turbo for i ∈ eachindex(A, u)
-        j = floor(Int, muladd(u[i], N, 1))
+        j = floor(Int, muladd(u[i], n, 1))
         A[i] = ifelse(u[i] < V[j], j, K[j])
     end
     A
 end
 function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
-    N = length(K)
+    n = length(K)
     rand!(u)
     @turbo for i ∈ eachindex(A, u)
-        j = floor(Int, muladd(u[i], N, 1))
+        j = floor(Int, muladd(u[i], n, 1))
         A[i] = ifelse(u[i] < V[j], j, K[j])
     end
     A
