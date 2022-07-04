@@ -219,9 +219,12 @@ E = zeros(Int, reverse(size(B)));
 
 a = [1,2,3,4,5,6]
 D′ = fill(a, 100,50,50);
+B = zeros(6, 10000);
 @benchmark sample_orderN!($B, $a)
 @benchmark sample!($B, $a)
 @benchmark vsample!($B, $a)
+@benchmark sample!($B, $D′)
+@benchmark vsample!($B, $D′)
 
 @timev vtsample!(B, D′);
 @timev tsample!(B, D′);
@@ -250,9 +253,23 @@ using SparseArrays
 using VectorizationBase, Static
 VectorizationBase.num_cores() = static(48)
 
-B = zeros(Int, 6, 1000000);
+B = zeros(Int, 6, 10^6);
 v2 = [[1,2,3,4], [1,2,3,4,5,6]]
 B2 =  vtsample(Int, v2, 10^4, chunksize=500)
 @code_warntype vtsample!(B2, [[.5, .5], [.2, .8]], 500)
 @timev vtsample(Int, [.5, .5], 10000, chunksize=500)
 @timev vtsample(Int, [1,2], 10000, chunksize=500)
+
+@timev vtsample!(B, D′, chunksize=10000);
+@timev vtsample!(B, Z, chunksize=10000);
+
+@timev vtsample!(B, D′, chunksize=1000);
+@timev vtsample!(B, Z, chunksize=1000);
+
+@timev vtsample!(B, D′, chunksize=100);
+@timev vtsample!(B, Z, chunksize=100);
+B .= 0;
+
+sum(B, dims=2)
+
+sum(length, Z) * 6 * size(B, 2)
