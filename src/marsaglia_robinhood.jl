@@ -58,14 +58,44 @@
 # As pⱼ is at most 1, the worst case will be eps(pⱼ)/4 = 2⁻⁵⁴, i.e. 1/n ≤ 2⁻⁵⁴.
 # ∴ in the worse case, instability begins at n ≥ 2⁵⁴ if pᵢ ≈ 0.
 # ∴ in general, expect instability if (a - pᵢ) ≤ 2⁻⁵⁴.
+# The above assumed Float64 with 53 bits of precision; the general form in terms of precision
+# replaces 2⁻⁵⁴ → 2⁻ᵖ⁻¹.
 # These are very permissive bounds; one is likely to run into other issues well before
 # the algorithm becomes numerically unstable.
+## Numerical stability, revisit
+# Oddly, Marsaglia's implementation in TplusSQ.c uses pⱼ + pᵢ - a, which has slightly
+# worse numerical stability. (pⱼ + pᵢ) becomes unstable when pᵢ ≤ eps(pⱼ)/2, which
+# corresponds to 2⁻ᵖ at pⱼ = 1.
+# It is possible to find cases where both suffer roundoff, which is ≤ 2⁻ᵖ⁺¹ for pⱼ + pᵢ - a
+# and ≤ 2⁻ᵖ for pⱼ - (a - pᵢ).
+# Provided that one is working with Float64, it most likely does not matter.
+# However, if p is provided as Float32, it may be preferable to forcibly promote to Float64
+# just to ensure stability; naturally, Float16 is largely unsuitable and needs promotion.
+# ##
+# # Comparison of stability
+# # f1 is unstable at n = 10, qⱼ = .999999999999
+# # However, f2 and f3 are unstable at n = 10, qⱼ = 5
+# f1(qⱼ, qᵢ, a) = qⱼ - (a - qᵢ)
+# f2(qⱼ, qᵢ, a) = qⱼ + qᵢ - a
+# ff2(qⱼ, qᵢ, a) = @fastmath qⱼ + qᵢ - a
+# f3(qⱼ, qᵢ, a) = (qⱼ + qᵢ) - a
+# n = 10
+# a = 1 / n
+# qⱼ = .999999999999
+# qᵢ = (1 - qⱼ) / n
+# f1(qⱼ, qᵢ, a)
+# f2(qⱼ, qᵢ, a)
+# ff2(qⱼ, qᵢ, a)
+# f3(qⱼ, qᵢ, a)
+# f1(big(qⱼ), big(qᵢ), big(a))
+# f2(big(qⱼ), big(qᵢ), big(a))
+# f3(big(qⱼ), big(qᵢ), big(a))
 
 function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     n = length(p)
     K = Vector{Int}(undef, n)
     V = Vector{promote_type(T, Float64)}(undef, n)
-    q = similar(p)
+    q = similar(p, promote_type(T, Float64))
     a = inv(n)
     # initialize
     @inbounds for i ∈ eachindex(K, V, p, q)
@@ -89,7 +119,7 @@ function vmarsaglia(p::Vector{T}) where {T<:AbstractFloat}
     K = Vector{Int}(undef, n)
     V = Vector{promote_type(T, Float64)}(undef, n)
     a = inv(n)
-    q = similar(p)
+    q = similar(p, promote_type(T, Float64))
     # initialize
     @turbo for i ∈ eachindex(K, V, p, q)
         K[i] = i
