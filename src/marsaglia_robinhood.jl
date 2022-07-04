@@ -68,7 +68,7 @@ function marsaglia(p::Vector{T}) where {T<:AbstractFloat}
     q = similar(p)
     a = inv(n)
     # initialize
-    for i ∈ eachindex(K, V, p, q)
+    @inbounds for i ∈ eachindex(K, V, p, q)
         K[i] = i
         V[i] = i * a
         q[i] = p[i]
@@ -116,7 +116,7 @@ end
 function marsaglia_generate(K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     n = length(K)
     u = rand()
-    j = floor(Int, muladd(u, n, 1))
+    j = trunc(Int, muladd(u, n, 1))
     u < V[j] ? j : K[j]
 end
 
@@ -125,7 +125,7 @@ function marsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) whe
     n = length(K)
     @inbounds for i ∈ eachindex(A) # safe to also use @fastmath, @simd
         u = rand()
-        j = floor(Int, muladd(u, n, 1)) # muladd is faster than u * n + 1 by ≈5-6%
+        j = trunc(Int, muladd(u, n, 1)) # muladd is faster than u * n + 1 by ≈5-6%
         A[i] = u < V[j] ? j : K[j]
     end
     A
@@ -135,7 +135,7 @@ function marsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Vec
     n = length(K)
     rand!(u)
     @inbounds for i ∈ eachindex(A, u) # safe to also use @fastmath, @simd
-        j = floor(Int, muladd(u[i], n, 1)) # muladd is faster than u * n + 1 by ≈5-6%
+        j = trunc(Int, muladd(u[i], n, 1)) # muladd is faster than u * n + 1 by ≈5-6%
         A[i] = u[i] < V[j] ? j : K[j]
     end
     A
@@ -192,7 +192,7 @@ function vmarsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) wh
     n = length(K)
     u = rand(length(A))
     @turbo for i ∈ eachindex(A, u)
-        j = floor(Int, muladd(u[i], n, 1))
+        j = trunc(Int, muladd(u[i], n, 1))
         A[i] = ifelse(u[i] < V[j], j, K[j])
     end
     A
@@ -202,7 +202,7 @@ function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Ve
     n = length(K)
     rand!(u)
     @turbo for i ∈ eachindex(A, u)
-        j = floor(Int, muladd(u[i], n, 1))
+        j = trunc(Int, muladd(u[i], n, 1))
         A[i] = ifelse(u[i] < V[j], j, K[j])
     end
     A
