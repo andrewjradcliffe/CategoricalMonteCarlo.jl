@@ -226,16 +226,6 @@ end
 
 # faster, but not necessarily the method to use due to LoopVectorization and Base.Threads
 # alas, it is ≈5x faster
-function vmarsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
-    length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
-    n = length(K)
-    u = rand(length(A))
-    @turbo for i ∈ eachindex(A, u)
-        j = trunc(Int, muladd(u[i], n, 1))
-        A[i] = ifelse(u[i] < V[j], j, K[j])
-    end
-    A
-end
 function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat}
     length(K) == length(V) || throw(ArgumentError("K and V must be of same size"))
     n = length(K)
@@ -246,6 +236,8 @@ function vmarsaglia_generate!(A::AbstractArray, u::AbstractArray{Float64}, K::Ve
     end
     A
 end
+vmarsaglia_generate!(A::AbstractArray, K::Vector{Int}, V::Vector{T}) where {T<:AbstractFloat} =
+    vmarsaglia_generate!(A, similar(A, Float64), K, V)
 
 function vmarsaglia_generate(K::Vector{Int}, V::Vector{T}, dims::Vararg{Int, N}) where {T<:AbstractFloat} where {N}
     vmarsaglia_generate!(Array{Int}(undef, dims), K, V)
