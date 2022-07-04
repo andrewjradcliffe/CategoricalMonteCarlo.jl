@@ -183,6 +183,52 @@ x = rand(1024);
 U = rand(length(C));
 @benchmark categorical!($C, $U, $Σp)
 
+#### Comparison to results from paper itself
+using Distributions
+
+l2cache = 1280 * 10^3
+l2cache ÷ 2^4 # 80000
+
+#
+n_sample = 10^8 # 2^16
+A = Vector{Int}(undef, n_sample);
+U = similar(A, Float64);
+
+d = Poisson(100.)
+p = map(n -> pdf(d, n), 0:200)
+K, V = vmarsaglia(p);
+@benchmark vmarsaglia_generate!($A, $U, $K, $V)
+2^16 / (57.096 * 1e-6)
+
+d = Binomial(100, .345)
+p = map(n -> pdf(d, n), 0:100)
+K, V = vmarsaglia(p);
+@benchmark vmarsaglia_generate!($A, $U, $K, $V)
+
+for λ ∈ [1, 10, 25, 100, 250, 1000]
+    println("λ = ", λ)
+    d = Poisson(λ)
+    p = map(n -> pdf(d, n), 0:max(1.5λ, 100))
+    K, V = vmarsaglia(p)
+    @btime vmarsaglia_generate!($A, $U, $K, $V)
+end
+
+
+for n ∈ [20, 100, 1000, 10000, 100000]
+    println("n = ", n)
+    for ρ ∈ (.1, .4)
+        println("\t p = ", ρ)
+        d = Binomial(n, ρ)
+        p = map(n -> pdf(d, n), 0:n)
+        K, V = vmarsaglia(p)
+        @btime vmarsaglia_generate!($A, $U, $K, $V)
+    end
+end
+
+
+
+
+
 
 
 #### Numerical stability tests
@@ -225,3 +271,4 @@ for i = 1:10
     @test K1 == K2
     @test V1 == V2
 end
+
