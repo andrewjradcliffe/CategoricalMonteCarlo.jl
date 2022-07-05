@@ -224,7 +224,6 @@ function marsaglia_generate(K::Vector{Int}, V::Vector{T}, dims::Vararg{Int, N}) 
 end
 
 function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
-    (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
     n = length(p)
     a = inv(n)
     @inbounds for i ∈ eachindex(K, V, p, q)
@@ -244,7 +243,6 @@ function marsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) wh
 end
 
 function vmarsaglia!(K::Vector{Int}, V::Vector{T}, q::Vector{T}, p::Vector{T}) where {T<:AbstractFloat}
-    (length(K) == length(V) == length(q) == length(p)) || throw(ArgumentError("all inputs must be of same size"))
     n = length(p)
     a = inv(n)
     @inbounds for i ∈ eachindex(K, V, p, q)
