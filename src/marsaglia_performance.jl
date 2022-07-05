@@ -190,7 +190,7 @@ l2cache = 1280 * 10^3
 l2cache ÷ 2^4 # 80000
 
 #
-n_sample = 10^8 # 2^16
+n_sample = 2^16 # 10^8
 A = Vector{Int}(undef, n_sample);
 U = similar(A, Float64);
 
@@ -198,7 +198,9 @@ d = Poisson(100.)
 p = map(n -> pdf(d, n), 0:200)
 K, V = vmarsaglia(p);
 @benchmark vmarsaglia_generate!($A, $U, $K, $V)
-2^16 / (57.096 * 1e-6)
+# 2^16 / (57.096 * 1e-6)
+t = MarsagliaSquareHistogram(p)
+@benchmark vmarsaglia_generate!($A, $U, $t)
 
 d = Binomial(100, .345)
 p = map(n -> pdf(d, n), 0:100)
@@ -225,7 +227,24 @@ for n ∈ [20, 100, 1000, 10000, 100000]
     end
 end
 
+#### Robin Hood (𝒪(N²)) squaring vs. 𝒪(NlogN) squaring
+n_cat = 2^20
+p = normalize1!(rand(n_cat));
+@timev K1, V1 = vmarsaglia(p);
+@timev K2, V2 = marsaglia2(p);
+n_sample = 2^16
+A1 = Vector{Int}(undef, n_sample);
+A2 = Vector{Int}(undef, n_sample);
+U = similar(A, Float64);
 
+@benchmark vmarsaglia_generate!($A1, $U, $K1, $V1)
+@benchmark vmarsaglia_generate!($A2, $U, $K2, $V2)
+
+A1 = vmarsaglia_generate(K1, V1, 10^9);
+A2 = vmarsaglia_generate(K2, V2, 10^9);
+[countcategory(A1) countcategory(A2)] ./ 10^9
+
+p = fill(1/n_cat, n_cat);
 
 
 
