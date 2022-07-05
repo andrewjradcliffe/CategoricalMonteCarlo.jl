@@ -145,27 +145,6 @@ function vmarsaglia(p::Vector{T}) where {T<:AbstractFloat}
     end
     K, V
 end
-function vmarsaglia2(p::Vector{T}) where {T<:AbstractFloat}
-    n = length(p)
-    K = Vector{Int}(undef, n)
-    V = Vector{promote_type(T, Float64)}(undef, n)
-    a = inv(n)
-    q = similar(p, promote_type(T, Float64))
-    # initialize
-    @turbo for i ∈ eachindex(K, V, p, q)
-        K[i] = i
-        V[i] = i * a
-        q[i] = p[i]
-    end
-    for _ = 1:n-1
-        ((qᵢ, i), (qⱼ, j)) = vfindextrema(q)
-        K[i] = j
-        V[i] = (i - 1) * a + qᵢ
-        q[j] = qⱼ - (a - qᵢ)
-        q[i] = a
-    end
-    K, V
-end
 
 function marsaglia2(p::Vector{T}) where {T<:AbstractFloat}
     n = length(p)
@@ -205,21 +184,6 @@ function marsaglia2(p::Vector{T}) where {T<:AbstractFloat}
     end
     K, V
 end
-
-p = [2/15, 7/15, 6/15]
-p = normalize1!(rand(2^16));
-
-@timev K1, V1 = marsaglia(p);
-@timev K2, V2 = marsaglia2(p);
-A1 = marsaglia_generate(K1, V1, 10^9);
-A2 = marsaglia_generate(K2, V2, 10^9);
-[countcategory(A1) countcategory(A2)]
-
-@benchmark marsaglia($p)
-@benchmark vmarsaglia($p)
-@benchmark marsaglia2($p)
-@benchmark vmarsaglia2($p)
-
 
 # p = [0.2, 0.3, 0.1, 0.4]
 
