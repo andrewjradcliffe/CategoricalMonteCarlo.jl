@@ -46,9 +46,30 @@ Random.seed!(1234)
         n = 1 << i
         p = [p₁; fill((1.0 - p₁) / n, n)]
         K, V = marsaglia(p)
-
     end
 end
+
+@testset "Marsaglia: non-Robin Hood alias table" begin
+    p = [2/15, 7/15, 6/15]
+    K, V = marsaglia2(p)
+    @test K == [3,2,2]
+    @test V == [2/15, 2/3, 13/15]
+    p = [2/15, 6/15, 7/15]
+    K, V = marsaglia2(p)
+    @test K == [3,2,2]
+    @test V == [2/15, 2/3, 14/15]
+    p = [7/15, 2/15, 6/15]
+    K, V = marsaglia2(p)
+    @test K == [1,3,1]
+    @test V == [1/3, 7/15, 13/15]
+    #
+    p = [8/15, 3/15, 4/15]
+    K, V = marsaglia2(p)
+    @test K == [1,1,1]
+    @test V == [1/3, 8/15, 14/15]
+    p = fill(1/3, 3)
+end
+
 
 
 @testset "Marsaglia: generate" begin
