@@ -7,22 +7,53 @@
 # Conveniences
 _maximum_maybe(x::AbstractVector{T}) where {T<:Real} = isempty(x) ? zero(T) : maximum(x)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(((I, w),) -> _maximum_maybe(I), a, init=0), A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} = maximum(num_cat, A, init=0)
 num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
-    maximum(((I, w),) -> _maximum_maybe(I), A, init=0)
+    maximum(num_cat, A, init=0)
 num_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(A[1])
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} where {M} = maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} where {M} =
+    maximum(num_cat, A, init=0)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(_maximum_maybe, A, init=0)
 num_cat(A::Vector{Int}) = _maximum_maybe(A)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(length, a, init=0), A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(num_cat, A, init=0)
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
 num_cat(A::Vector{T}) where {T<:AbstractFloat} = length(A)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} = maximum(a -> maximum(length, a, init=0), A, init=0)
-num_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} = maximum(length, A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} = maximum(num_cat, A, init=0)
+num_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} =
+    maximum(length, A, init=0)
 num_cat(A::SparseVector{T}) where {T<:AbstractFloat} = length(A)
+
+####
+_extrema_maybe(x::AbstractVector{T}) where {T<:Real} = isempty(x) ? (zero(T), zero(T)) : extrema(x)
+
+bounds_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} =
+    (((lb1, ub1), (lb2, ub2)) = extrema(bounds_cat, A, init=((1,1), (0,0)));
+     extrema((lb1, ub1, lb2, ub2)))
+bounds_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
+    (((lb1, ub1), (lb2, ub2)) = extrema(bounds_cat, A, init=((1,1), (0,0)));
+     extrema((lb1, ub1, lb2, ub2)))
+bounds_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _extrema_maybe(A[1])
+
+bounds_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} where {M} =
+    (((lb1, ub1), (lb2, ub2)) = extrema(bounds_cat, A, init=((1,1), (0,0)));
+     extrema((lb1, ub1, lb2, ub2)))
+bounds_cat(A::AbstractArray{Vector{Int}, N}) where {N} =
+    (((lb1, ub1), (lb2, ub2)) = extrema(_extrema_maybe, A, init=((1,1), (0,0)));
+     extrema((lb1, ub1, lb2, ub2)))
+bounds_cat(A::Vector{Int}) = _extrema_maybe(A)
+
+bounds_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
+bounds_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
+bounds_cat(A::Vector{T}) where {T<:AbstractFloat} = (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
+
+bounds_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} =
+    (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
+bounds_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} =
+    (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
+bounds_cat(A::SparseVector{T}) where {T<:AbstractFloat} = (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
 
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
