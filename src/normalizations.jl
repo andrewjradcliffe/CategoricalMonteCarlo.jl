@@ -169,7 +169,7 @@ function algorithm2_2_quote(M::Int)
         push!(bc.args, Expr(:call, :checkbounds, Symbol(:w_, m), Symbol(:I_, m)))
     end
     block = Expr(:block)
-    loop1 = Expr(:for, Expr(:(=), :j, Expr(:call, :eachindex, ntuple(i -> Symbol(:I_, i), M)..., :p)), block)
+    loop = Expr(:for, Expr(:(=), :j, Expr(:call, :eachindex, ntuple(i -> Symbol(:I_, i), M)..., :p)), block)
     e = Expr(:call, :*)
     for m = 1:M
         push!(e.args, Expr(:ref, Symbol(:w_, m), Expr(:ref, Symbol(:I_, m), :j)))
@@ -182,7 +182,7 @@ function algorithm2_2_quote(M::Int)
         $ws = ws
         $bc
         s = zero(T)
-        @inbounds @simd ivdep $loop1
+        @inbounds @simd ivdep $loop
         c = inv(s)
         @inbounds @simd ivdep for j ∈ eachindex(p)
             p[j] *= c
