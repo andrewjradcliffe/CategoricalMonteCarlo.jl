@@ -725,6 +725,15 @@ function vtsample_poly!(B, A, sz::Int)
     B
 end
 
+function vtsample!(B, A; tiling=:batch, chunksize=5000)
+    tiling === :batch || tiling === :recursive || throw(ArgumentError(lazy"tiling must be either :batch or :recursive, got $tiling"))
+    if tiling !== :batch
+        vtsample!(B, A)
+    else
+        vtsample_poly!(B, A, chunksize)
+    end
+    B
+end
 
 
 ################
