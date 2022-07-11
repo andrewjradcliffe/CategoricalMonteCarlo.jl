@@ -55,11 +55,11 @@ bounds_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, 
     (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
 bounds_cat(A::SparseVector{T}) where {T<:AbstractFloat} = (n = num_cat(A); n ≥ 1 ? (1, n) : (0, 0))
 
+################
 function _checkindex_reducedims(ax, lb, ub)
     checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     true
 end
-
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
     lb, ub = bounds_cat(A)
@@ -72,30 +72,13 @@ end
     true
 end
 
-@noinline function _check_reducedims(B, A::Tuple{Vector{Int}, Vector{<:AbstractFloat}})
-    lb, ub = bounds_cat(A)
-    _checkindex_reducedims(axes(B, 1), lb, ub)
-    true
+for T ∈ (Tuple{Vector{Int}, Vector{<:AbstractFloat}}, Vector{Int}, Vector{<:AbstractFloat}, SparseVector{<:AbstractFloat})
+    @eval @noinline function _check_reducedims(B, A::$T)
+        lb, ub = bounds_cat(A)
+        _checkindex_reducedims(axes(B, 1), lb, ub)
+        true
+    end
 end
-
-@noinline function _check_reducedims(B, A::Vector{Int})
-    lb, ub = bounds_cat(A)
-    _checkindex_reducedims(axes(B, 1), lb, ub)
-    true
-end
-
-@noinline function _check_reducedims(B, A::Vector{T}) where {T<:AbstractFloat}
-    lb, ub = bounds_cat(A)
-    _checkindex_reducedims(axes(B, 1), lb, ub)
-    true
-end
-
-@noinline function _check_reducedims(B, A::SparseVector{T}) where {T<:AbstractFloat}
-    lb, ub = bounds_cat(A)
-    _checkindex_reducedims(axes(B, 1), lb, ub)
-    true
-end
-
 
 ################################################################
 """
