@@ -273,3 +273,60 @@ B .= 0;
 sum(B, dims=2)
 
 sum(length, Z) * 6 * size(B, 2)
+
+################################################################
+# Experiment with using a view to enable @turbo use everywhere
+# Preliminary conclusion: not really much gain/loss in terms of time;
+# the axes call on the view invokes some unnecessary allocations which can be
+# alleviated by simply using axes(B, 2)
+# Ultimately, it is likely not worth it to attempt it, as it is not really SIMD fodder
+# due to the random nature of the indices; forcing SIMD will very likely
+# make performance worse for any reasonable number of categories.
+# Moreover, the random nature of the memory location being written to makes it an unsafe
+# operation -- silent problems, but corrupted memory nonetheless.
+function vsample2!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C, U = _genstorage_init(Float64, size(B, 2))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        Bv = view(B, :, :, IR)
+        for Iₛ ∈ a
+            n = length(Iₛ)
+            vgenerate!(C, U, n)
+            @turbo for j ∈ indices((B, C), (2, 1))#axes(B, 2)#indices((Bv, C), (2, 1)) # axes(Bv, 2)
+                c = C[j]
+                Bv[Iₛ[c], j] += one(S)
+            end
+        end
+    end
+    B
+end
+
+function vsample2!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C, U = _genstorage_init(Float64, size(B, 2))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        Iₛ = A[IA]
+        Bv = view(B, :, :, IR)
+        n = length(Iₛ)
+        vgenerate!(C, U, n)
+        @turbo for j ∈ axes(B, 2)
+            c = C[j]
+            Bv[Iₛ[c], j] += one(S)
+        end
+    end
+    B
+end
+
+A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]];
+D = fill(A, 10,10,10);
+B = vsample(Int, D, 10000, dims=(1,3));
+
+@benchmark vsample!($B, $D)
+@benchmark vsample2!($B, $D)
+
+vsample2!(B, D);
