@@ -6,6 +6,7 @@
 ############################################################################################
 # Some benchmarks of normalization performance
 
+#### normalize1
 for i = 1:15
     for j = -1:1
         n = (1 << i) + j
@@ -30,6 +31,7 @@ u = 0.5
 @benchmark algorithm3_v2!($p, $w, $u)
 @benchmark algorithm3_v3!($p, $w, $u)
 
+#### Algorithm 3
 # As one might expect, @turbo handles tails better than base julia
 u = 0.5
 for i = 1:15
@@ -84,3 +86,33 @@ function valgorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:AbstractFloat,
     end
     p
 end
+
+#### Algorithm 2.2
+algorithm2_2_quote(3)
+algorithm2_2_normalize_quote(3)
+algorithm2_2_normalize1!(p, Is, ws) = normalize1!(algorithm2_2!(p, Is, ws))
+
+N = 2^10
+n = 2^7
+m = 3
+Is = ntuple(_ -> rand(1:N, n), m);
+ws = ntuple(_ -> rand(N), m);
+
+p = zeros(n);
+@benchmark algorithm2_2!($p, $Is, $ws)
+@benchmark algorithm2_2_normalize1!($p, $Is, $ws)
+@benchmark algorithm2_2_normalize!($p, $Is, $ws)
+@benchmark valgorithm2_2_normalize!($p, $Is, $ws)
+@timev algorithm2_2_normalize!(p, (Is[1],), (ws[1],))
+
+str = """
+@inbounds @simd ivdep for j = eachindex(I_1, I_2, I_3)
+    w′[j] = w_1[I_1[j]] * w_2[I_2[j]] * w_3[I_3[j]]
+end
+"""
+e = Meta.parse(str)
+Meta.show_sexpr(e)
+eq = :(@inbounds @simd ivdep for j = eachindex(I_1, I_2, I_3)
+           w′[j] = w_1[I_1[j]] * w_2[I_2[j]] * w_3[I_3[j]]
+       end)
+Meta.show_sexpr(eq)
