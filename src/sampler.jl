@@ -52,14 +52,14 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
     K, V, q = _sqhist_init(T, 0)
-    L, S = _largesmall_init(0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for (Iₛ, p) ∈ a
             n = length(p)
-            resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
-            sqhist!(K, V, L, S, q, p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -76,13 +76,13 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
     K, V, q = _sqhist_init(T, 0)
-    L, S = _largesmall_init(0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ, p = A[IA]
         n = length(p)
-        resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
-        sqhist!(K, V, L, S, q, p)
+        resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+        sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
@@ -179,14 +179,14 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
     K, V, q = _sqhist_init(T, 0)
-    L, S = _largesmall_init(0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for p ∈ a
             n = length(p)
-            resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
-            sqhist!(K, V, L, S, q, p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -203,13 +203,13 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) wher
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
     K, V, q = _sqhist_init(T, 0)
-    L, S = _largesmall_init(0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         p = A[IA]
         n = length(p)
-        resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
-        sqhist!(K, V, L, S, q, p)
+        resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+        sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
@@ -247,15 +247,15 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
     K, V, q = _sqhist_init(Tv, 0)
-    L, S = _largesmall_init(0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for sv ∈ a
             Iₛ, p = sv.nzind, sv.nzval
             n = length(p)
-            resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
-            sqhist!(K, V, L, S, q, p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
@@ -272,14 +272,14 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
     K, V, q = _sqhist_init(Tv, 0)
-    L, S = _largesmall_init(0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
         Iₛ, p = sv.nzind, sv.nzval
         n = length(p)
-        resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
-        sqhist!(K, V, L, S, q, p)
+        resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+        sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
