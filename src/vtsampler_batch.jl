@@ -109,10 +109,10 @@ function _vsample_chunk!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}},
     return B
 end
 function _vsample_chunk!(B::AbstractMatrix{S}, A::Tuple{AbstractVector{Int}, AbstractVector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
-    Iₛ, ω = A
+    Iₛ, p = A
     n = length(Iₛ)
-    Iₛω = (copyto!(Vector{Int}(undef, n), Iₛ), copyto!(Vector{T}(undef, n), ω))
-    _vsample_chunk!(B, Iₛω, 𝒥)
+    Iₛp = (copyto!(Vector{Int}(undef, n), Iₛ), copyto!(Vector{T}(undef, n), p))
+    _vsample_chunk!(B, Iₛp, 𝒥)
 end
 
 ################
@@ -322,7 +322,7 @@ end
 
 function _vsample_chunk!(B::AbstractMatrix{S}, A::SparseVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     Iₛ, p = A.nzind, A.nzval
-    K, V = sqhist(ω)
+    K, V = sqhist(p)
     C = vgenerate(K, V, length(𝒥))
     @inbounds for l ∈ eachindex(C, 𝒥)
         c = C[l]
