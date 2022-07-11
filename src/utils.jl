@@ -72,8 +72,8 @@ end
     true
 end
 
-for T ∈ (Tuple{Vector{Int}, Vector{<:AbstractFloat}}, Vector{Int}, Vector{<:AbstractFloat}, SparseVector{<:AbstractFloat})
-    @eval @noinline function _check_reducedims(B, A::$T)
+for Tₐ ∈ (Tuple{Vector{Int}, Vector{<:AbstractFloat}}, Vector{Int}, Vector{<:AbstractFloat}, SparseVector{<:AbstractFloat})
+    @eval @noinline function _check_reducedims(B, A::$Tₐ)
         lb, ub = bounds_cat(A)
         _checkindex_reducedims(axes(B, 1), lb, ub)
         true
