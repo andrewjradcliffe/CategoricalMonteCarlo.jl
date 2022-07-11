@@ -76,3 +76,53 @@ end
         end
     end
 end
+
+@testset "bounds_cat" begin
+    A1 = [[-1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
+    A2 = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 7]]
+    B = [A1, A2]
+    @test bounds_cat(A1) == (-1, 6)
+    @test bounds_cat(A2) == (1, 7)
+    @test bounds_cat(B) == (-1, 7)
+    A3 = [Int[], Int[]]
+    @test bounds_cat(A3) == (0, 0)
+    B3 = [A3, A3]
+    @test bounds_cat(B3) == (0, 0)
+    B4 = [A3, A1]
+    @test bounds_cat(B4) == (-1, 6)
+    #
+    A1 = [([-1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,6], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+    A2 = [([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), ([1,2,3,4,5,7], [0.1, 0.1, 0.1, 0.1,0.1, 0.5])]
+    B = [A1, A2]
+    @test bounds_cat(A1) == (-1, 6)
+    @test bounds_cat(A2) == (1, 7)
+    @test bounds_cat(B) == (-1, 7)
+    A3 = [(Int[], Float64[]), (Int[], Float64[])]
+    @test bounds_cat(A3) == (0, 0)
+    B3 = [A3, A3]
+    @test bounds_cat(B3) == (0, 0)
+    B4 = [A3, A1]
+    @test bounds_cat(B4) == (-1, 6)
+    #
+    A1 = [[0.3, 0.7], [0.2, 0.3, 0.4, 0.1], [0.1, 0.1, 0.1, 0.1,0.1, 0.5]]
+    A2 = [[0.3, 0.7], [0.2, 0.3, 0.4, 0.1], [0.1, 0.1, 0.1, 0.1,0.1]]
+    B = [A1, A2]
+    @test bounds_cat(A1) == (1, 6)
+    @test bounds_cat(A2) == (1, 5)
+    @test bounds_cat(B) == (1, 6)
+    @test bounds_cat(Float64[]) == (0, 0)
+    @test bounds_cat([Float64[]]) == (0, 0)
+    @test bounds_cat([[Float64[]]]) == (0, 0)
+    A3 = [Float64[], Float64[]]
+    @test bounds_cat(A3) == (0, 0)
+    B3 = [A3, A3]
+    @test bounds_cat(B3) == (0, 0)
+    B4 = [A3, A1]
+    @test bounds_cat(B4) == (1, 6)
+    #
+    x = SparseVector([0.0, 1.0, 2.0, 0.0, 0.0, 0.0])
+    @test bounds_cat(x) == (1, 6)
+    A = [x, SparseVector([0.0, 1.0, 2.0, 0.0]), SparseVector([1.0, 0.0])]
+    @test bounds_cat(A) == (1, 6)
+    @test bounds_cat([A, A]) == (1, 6)
+end
