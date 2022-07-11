@@ -140,6 +140,8 @@ end
 
 Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
 Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
+
+See also: [`algorithm2_1`](@ref)
 """
 function algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
     checkbounds(w, I)
@@ -150,8 +152,47 @@ end
     algorithm2_1(I::Vector{Int}, w::Vector{<:Real})
 
 Create a vector of probabilities by normalizing the weights selected by `I` from `w`.
+It is assumed that `0 ≤ wᵢ < Inf` and that `NaN`'s are not present, at least for
+the (sub)set `w[I]`.
 
-See also: [`normweights!`](@ref)
+Mathematically, given:
+
+I ∈ ℕᴺ, 𝐰 ∈ ℝᴰ; I ⊆ {1,…,D}
+
+The iᵗʰ term will be computed as: pᵢ = 𝐰ᵢ / ∑ⱼ 𝐰ⱼ; j ∈ I
+
+See also: [`algorithm2_1!`](@ref)
+
+# Examples
+```jldoctest
+julia> I = [1, 5, 2]; w = [5, 4, 3, 2, 1];
+
+julia> algorithm2_1(I, w)
+3-element Vector{Float64}:
+ 0.5
+ 0.1
+ 0.4
+
+julia> algorithm2_1(I, Rational.(w))
+3-element Vector{Rational{Int64}}:
+ 1//2
+ 1//10
+ 2//5
+
+julia> w[2] = -w[2];
+
+julia> algorithm2_1(I, w)                # Nonsense results if `wᵢ` constraints violated
+3-element Vector{Float64}:
+  2.5
+  0.5
+ -2.0
+
+julia> algorithm2_1(I, [5, 4, 3, 2, Inf])
+3-element Vector{Float64}:
+   0.0
+ NaN
+   0.0
+```
 """
 algorithm2_1(I::Vector{Int}, w::Vector{<:Real}) = algorithm2_1!(similar(I, _typeofinv(first(w))), I, w)
 
@@ -259,7 +300,6 @@ julia> w ./= sum(w)                                        # normalized
 ```
 """
 algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real} = algorithm2_2!(Vector{Base.promote_op(inv, T)}(undef, maximum(length, Is)), Is, ws)
-
 
 # function algorithm2_2_weightonly_quote(M::Int)
 #     Is = Expr(:tuple)
