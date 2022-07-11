@@ -96,3 +96,7 @@ end
 Divide the range `ur` into segments, each of size `chunksize`.
 """
 splitranges(ur::UnitRange{Int}, Lc::Int) = splitranges(ur.start, ur.stop, Lc)
+
+################################################################
+# sampler accessories
+_largesmall_init(n::Int) = Vector{Int}(undef, n), Vector{Int}(undef, n)
