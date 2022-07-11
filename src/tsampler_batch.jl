@@ -29,24 +29,24 @@ function tsample!(B, A, chunksize::Int)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
-        sample_chunk!(B, A, keep, default, r)
+        _sample_chunk!(B, A, keep, default, r)
     end
     return B
 end
 
 # The expected case: vectors of sparse vectors (as their bare components)
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
+    C, U = _genstorage_init(Float64, length(𝒥))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
-        for (Iₛ, ω) ∈ a
-            n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
-            marsaglia_generate!(C, U, K, V)
+        for (Iₛ, p) ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -58,17 +58,18 @@ function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, 
 end
 
 # A simplification: an array of sparse vectors
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     L = length(𝒥)
     C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
-        Iₛ, ω = A[IA]
-        n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
-        marsaglia_generate!(C, U, K, V)
+        Iₛ, p = A[IA]
+        n = length(p)
+        resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+        sqhist!(K, V, large, small, q, p)
+        generate!(C, U, K, V)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
             j = 𝒥[l]
@@ -91,43 +92,40 @@ function tsample!(B::AbstractMatrix, A::Tuple{Vector{Int}, Vector{<:AbstractFloa
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
-        sample_chunk!(B, A, r)
+        _sample_chunk!(B, A, r)
     end
     return B
 end
 
-function sample_chunk!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
-    L = length(𝒥)
-    Iₛ, ω = A
-    K, V = marsaglia(ω)
-    n = length(ω)
-    @inbounds for j ∈ 𝒥
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+function _sample_chunk!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    Iₛ, p = A
+    K, V = sqhist(p)
+    C = generate(K, V, length(𝒥))
+    @inbounds for l ∈ eachindex(C, 𝒥)
+        c = C[l]
+        j = 𝒥[l]
         B[Iₛ[c], j] += one(S)
     end
     return B
+end
+function _sample_chunk!(B::AbstractMatrix{S}, A::Tuple{AbstractVector{Int}, AbstractVector{T}}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    Iₛ, p = A
+    n = length(Iₛ)
+    Iₛp = (copyto!(Vector{Int}(undef, n), Iₛ), copyto!(Vector{T}(undef, n), p))
+    _sample_chunk!(B, Iₛp, 𝒥)
 end
 
 ################
 # Specialized method for eltype(A)::Vector{Vector{Int}}
 # or, in other words, where the probability mass on each element is 1 / length(Iₛ)
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init()
-    ω = Vector{Float64}()
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
+    C, U = _genstorage_init(Float64, length(𝒥))
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            resize!(ω, n)
-            fill!(ω, inv(n))
-            marsaglia!(K, V, q, ix, ω)
-            marsaglia_generate!(C, U, K, V)
+            generate!(C, U, n)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -139,20 +137,13 @@ function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, 
 end
 
 # A simplification: an array of sparse vectors
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init()
-    ω = Vector{Float64}()
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {N}
+    C, U = _genstorage_init(Float64, length(𝒥))
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        resize!(ω, n)
-        fill!(ω, inv(n))
-        marsaglia!(K, V, q, ix, ω)
-        marsaglia_generate!(C, U, K, V)
+        generate!(C, U, n)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
             j = 𝒥[l]
@@ -172,20 +163,18 @@ function tsample!(B::AbstractMatrix, A::Vector{Int}, chunksize::Int)
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
-        sample_chunk!(B, A, r)
+        _sample_chunk!(B, A, r)
     end
     return B
 end
 
-function sample_chunk!(B::AbstractMatrix{S}, A::Vector{Int}, 𝒥::UnitRange{Int}) where {S<:Real}
-    L = length(𝒥)
+function _sample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{Int}, 𝒥::UnitRange{Int}) where {S<:Real}
     Iₛ = A
     n = length(Iₛ)
-    K, V = marsaglia(fill(inv(n), n))
-    @inbounds for j ∈ 𝒥
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+    C = generate(n, length(𝒥))
+    @inbounds for l ∈ eachindex(C, 𝒥)
+        c = C[l]
+        j = 𝒥[l]
         B[Iₛ[c], j] += one(S)
     end
     return B
@@ -193,18 +182,18 @@ end
 
 ################
 # General case: dense vectors, the linear index of which indicates the category
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M}
+    C, U = _genstorage_init(Float64, length(𝒥))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
-        for ω ∈ a
-            n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
-            marsaglia_generate!(C, U, K, V)
+        for p ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -216,17 +205,17 @@ function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, 
 end
 
 # A simplification: an array of dense vectors
-function tsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(T)
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {T<:AbstractFloat, N}
+    C, U = _genstorage_init(Float64, length(𝒥))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
-        ω = A[IA]
-        n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
-        marsaglia_generate!(C, U, K, V)
+        p = A[IA]
+        n = length(p)
+        resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+        sqhist!(K, V, large, small, q, p)
+        generate!(C, U, K, V)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
             j = 𝒥[l]
@@ -245,46 +234,42 @@ function tsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon, chunk
     tsample!(B, A, chunksize)
 end
 
-function tsample!(B::AbstractMatrix, A::Vector{<:AbstractFloat}, chunksize::Int)
+function tsample!(B::AbstractMatrix, A::Vector{T}, chunksize::Int) where {T<:AbstractFloat}
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
-        sample_chunk!(B, A, r)
+        _sample_chunk!(B, A, r)
     end
     return B
 end
 
-function sample_chunk!(B::AbstractMatrix{S}, A::Vector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
-    L = length(𝒥)
-    ω = A
-    K, V = marsaglia(ω)
-    n = length(K)
-    @inbounds for j ∈ 𝒥
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+function _sample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    p = copyto!(Vector{T}(undef, length(A)), A)
+    K, V = sqhist(p)
+    C = generate(K, V, length(𝒥))
+    @inbounds for l ∈ eachindex(C, 𝒥)
+        c = C[l]
+        j = 𝒥[l]
         B[c, j] += one(S)
     end
     return B
 end
 
-
 ################
 # General case: sparse vectors, the nzval of which indicates the category
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(Tv)
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
+    C, U = _genstorage_init(Float64, length(𝒥))
+    K, V, q = _sqhist_init(Tv, 0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for sv ∈ a
-            (; n, nzind, nzval) = sv
-            Iₛ, ω = nzind, nzval
-            n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-            marsaglia!(K, V, q, ix, ω)
-            marsaglia_generate!(C, U, K, V)
+            Iₛ, p = sv.nzind, sv.nzval
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            generate!(C, U, K, V)
             for l ∈ eachindex(C, 𝒥)
                 c = C[l]
                 j = 𝒥[l]
@@ -296,19 +281,18 @@ function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, 
 end
 
 # A simplification: an array of sparse vectors
-function sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
-    L = length(𝒥)
-    C, U = _genstorage_init(Float64, L)
-    K, V, ix, q = _marsaglia_init(Tv)
+function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
+    C, U = _genstorage_init(Float64, length(𝒥))
+    K, V, q = _sqhist_init(Tv, 0)
+    large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
-        (; n, nzind, nzval) = sv
-        Iₛ, ω = nzind, nzval
-        n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(ix, n); resize!(q, n)
-        marsaglia!(K, V, q, ix, ω)
-        marsaglia_generate!(C, U, K, V)
+        Iₛ, p = sv.nzind, sv.nzval
+        n = length(p)
+        resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+        sqhist!(K, V, large, small, q, p)
+        generate!(C, U, K, V)
         for l ∈ eachindex(C, 𝒥)
             c = C[l]
             j = 𝒥[l]
@@ -331,21 +315,18 @@ function tsample!(B::AbstractMatrix, A::SparseVector{<:AbstractFloat}, chunksize
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
-        sample_chunk!(B, A, r)
+        _sample_chunk!(B, A, r)
     end
     return B
 end
 
-function sample_chunk!(B::AbstractMatrix{S}, A::SparseVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
-    L = length(𝒥)
-    (; n, nzind, nzval) = A
-    Iₛ, ω = nzind, nzval
-    K, V = marsaglia(ω)
-    n = length(K)
-    @inbounds for j ∈ 𝒥
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+function _sample_chunk!(B::AbstractMatrix{S}, A::SparseVector{T}, 𝒥::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
+    Iₛ, p = A.nzind, A.nzval
+    K, V = sqhist(p)
+    C = generate(K, V, length(𝒥))
+    @inbounds for l ∈ eachindex(C, 𝒥)
+        c = C[l]
+        j = 𝒥[l]
         B[Iₛ[c], j] += one(S)
     end
     return B
