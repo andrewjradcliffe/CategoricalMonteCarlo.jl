@@ -19,6 +19,21 @@
     @test_throws DimensionMismatch _check_reducedims(Array{Int}(undef, 6,1,10,2,5), D)
     @test _check_reducedims(Array{Int}(undef, 6,1,10,1,5), D)
     @test _check_reducedims(Array{Int}(undef, 6,1,10,5,5), D)
+    #
+    B0 = Int[]
+    B1 = zeros(Int, 1,2)
+    B2 = zeros(Int, 2,2)
+    for prototype ∈ ([1, 2], ([1, 2], [0.4, 0.6]), [0.4, 0.6], SparseVector([0.0, 1.0]))
+        @test_throws DimensionMismatch _check_reducedims(B0, prototype)
+        @test_throws DimensionMismatch _check_reducedims(B0, [prototype])
+        @test_throws DimensionMismatch _check_reducedims(B0, [[prototype]])
+        @test_throws DimensionMismatch _check_reducedims(B1, prototype)
+        @test_throws DimensionMismatch _check_reducedims(B1, [prototype])
+        @test_throws DimensionMismatch _check_reducedims(B1, [[prototype]])
+        @test _check_reducedims(B2, prototype)
+        @test _check_reducedims(B2, [prototype])
+        @test _check_reducedims(B2, [[prototype]])
+    end
 end
 
 @testset "num_cat" begin
