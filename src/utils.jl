@@ -100,3 +100,4 @@ splitranges(ur::UnitRange{Int}, Lc::Int) = splitranges(ur.start, ur.stop, Lc)
 ################################################################
 # sampler accessories
 _largesmall_init(n::Int) = Vector{Int}(undef, n), Vector{Int}(undef, n)
+@inline _genstorage_init(T::Type{<:AbstractFloat}, n::Int) = Vector{Int}(undef, n), Vector{T}(undef, n)
