@@ -2,7 +2,7 @@ using CategoricalMonteCarlo
 using Random
 using Test
 
-import CategoricalMonteCarlo: _check_reducedims
+import CategoricalMonteCarlo: _check_reducedims, splitranges
 
 const tests = [
     "utils.jl",
