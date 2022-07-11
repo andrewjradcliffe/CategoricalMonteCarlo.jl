@@ -83,19 +83,45 @@ See also: [`normalize1!`](@ref)
 """
 normalize1(A::AbstractArray{<:Real}) = normalize1!(similar(A, _typeofinv(first(A))), A)
 
-################
-@noinline function _check_normweights(I::Vector{Int}, x)
-    mn, mx = extrema(I)
-    f, l = firstindex(x), lastindex(x)
-    mn ≥ f || throw(BoundsError(x, mn))
-    mx ≤ l || throw(BoundsError(x, mx))
+function vnormalize1!(A::AbstractArray{T}) where {T<:Base.IEEEFloat}
+    s = zero(T)
+    @turbo for i ∈ eachindex(A)
+        s += A[i]
+    end
+    c = inv(s)
+    @turbo for i ∈ eachindex(A)
+        A[i] *= c
+    end
+    A
 end
+
+function normalize1!(B::AbstractArray{T}, A::AbstractArray{T}) where {T<:Base.IEEEFloat}
+    s = zero(S)
+    @turbo for i ∈ eachindex(A)
+        s += A[i]
+    end
+    c = inv(s)
+    @turbo for i ∈ eachindex(A, B)
+        B[i] = A[i] * c
+    end
+    B
+end
+
+normalize1(A::AbstractArray{<:Base.IEEEFloat}) = normalize1!(similar(A, _typeofinv(first(A))), A)
+
+################
+# @noinline function _check_algorithm2_1(I::Vector{Int}, x)
+#     mn, mx = extrema(I)
+#     f, l = firstindex(x), lastindex(x)
+#     mn ≥ f || throw(BoundsError(x, mn))
+#     mx ≤ l || throw(BoundsError(x, mx))
+# end
 
 #### Algorithm 2.1.
 # I ∈ ℕᴺ, 𝐰 ∈ ℝᴰ; I ⊆ 1,…,D
 # -> ω ∈ ℝᴺ, ωᵢ = 𝐰ᵢ / ∑ⱼ 𝐰ⱼ; j ∈ I
 
-function unsafe_normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
+function unsafe_algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
     s = zero(S)
     @inbounds @simd ivdep for i ∈ eachindex(I, p)
         w̃ = w[I[i]]
@@ -110,25 +136,24 @@ function unsafe_normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {
 end
 
 """
-    normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
+    algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
 
 Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
 Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
 """
-function normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
-    # _check_normweights(I, w)
+function algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
     checkbounds(w, I)
-    unsafe_normweights!(p, I, w)
+    unsafe_algorithm2_1!(p, I, w)
 end
 
 """
-    normweights(I::Vector{Int}, w::Vector{<:Real})
+    algorithm2_1(I::Vector{Int}, w::Vector{<:Real})
 
 Create a vector of probabilities by normalizing the weights selected by `I` from `w`.
 
 See also: [`normweights!`](@ref)
 """
-normweights(I::Vector{Int}, w::Vector{<:Real}) = normweights!(similar(I, _typeofinv(first(w))), I, w)
+algorithm2_1(I::Vector{Int}, w::Vector{<:Real}) = algorithm2_1!(similar(I, _typeofinv(first(w))), I, w)
 
 ################
 
@@ -299,6 +324,8 @@ normweights(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat
 
 
 
+################
+# Algorithm 4
 
 # A weight is assigned to each i, and the w₁'s are normalized to probabilities.
 # Then, a subset of the i's, denoted I′, is selected for re-weighting by a quantity
