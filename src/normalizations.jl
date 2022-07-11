@@ -155,6 +155,171 @@ See also: [`normweights!`](@ref)
 """
 algorithm2_1(I::Vector{Int}, w::Vector{<:Real}) = algorithm2_1!(similar(I, _typeofinv(first(w))), I, w)
 
+#### Algorithm 2.2
+# I₁ ∈ ℕᴺ, I₂ ∈ ℕᴺ, …, Iₘ ∈ ℕᴺ; 𝐰₁ ∈ ℝᴰ¹, 𝐰₂ ∈ ℝᴰ², …, 𝐰ₘ ∈ ℝᴰᵐ
+# -> ω ∈ ℝᴺ, ωᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ᵢ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]]
+
+function algorithm2_2_quote(M::Int)
+    Is = Expr(:tuple)
+    ws = Expr(:tuple)
+    bc = Expr(:tuple)
+    for m = 1:M
+        push!(Is.args, Symbol(:I_, m))
+        push!(ws.args, Symbol(:w_, m))
+        push!(bc.args, Expr(:call, :checkbounds, Symbol(:w_, m), Symbol(:I_, m)))
+    end
+    block = Expr(:block)
+    loop1 = Expr(:for, Expr(:(=), :j, Expr(:call, :eachindex, ntuple(i -> Symbol(:I_, i), M)..., :p)), block)
+    e = Expr(:call, :*)
+    for m = 1:M
+        push!(e.args, Expr(:ref, Symbol(:w_, m), Expr(:ref, Symbol(:I_, m), :j)))
+    end
+    push!(block.args, Expr(:(=), :t, e))
+    push!(block.args, Expr(:(=), :s, Expr(:call, :+, :s, :t)))
+    push!(block.args, Expr(:(=), Expr(:ref, :p, :j), :t))
+    return quote
+        $Is = Is
+        $ws = ws
+        $bc
+        s = zero(T)
+        @inbounds @simd ivdep $loop1
+        c = inv(s)
+        @inbounds @simd ivdep for j ∈ eachindex(p)
+            p[j] *= c
+        end
+        return p
+    end
+end
+@generated function algorithm2_2!(p, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+    algorithm2_2_quote(M)
+end
+
+"""
+    algorithm2_2!(p, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+
+Compute the product of weights selected by the respective index sets `Is`,
+then normalize the resultant weight vector to probabilities, storing the result in `p`.
+
+See also: [`algorithm2_2`](@ref)
+
+# Examples
+```jldoctest
+julia> Is = ([1, 2, 3], [4, 5, 6], [7, 8, 9]); ws = ([1.0, 2.0, 3.0], fill(0.5, 6), fill(0.1, 9));
+
+julia> algorithm2_2!(zeros(3), Is, ws)
+3-element Vector{Float64}:
+ 0.16666666666666666
+ 0.3333333333333333
+ 0.5
+```
+"""
+algorithm2_2!(p, Is::NTuple{1, Vector{Int}}, ws::NTuple{1, Vector{T}}) where {M} where {T<:Real} = algorithm2_1!(p, (@inbounds Is[1]), (@inbounds ws[1]))
+
+"""
+    algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+
+Compute the product of weights selected by the respective index sets `Is`,
+then normalize the resultant weight vector to probabilities.
+Mathematically, given:
+
+I₁ ∈ ℕᴺ , 𝐰₁ ∈ ℝᴰ¹
+
+I₂ ∈ ℕᴺ , 𝐰₂ ∈ ℝᴰ²
+
+⋮       , ⋮
+
+Iₘ ∈ ℕᴺ , 𝐰ₘ ∈ ℝᴰᵐ
+
+The iᵗʰ term will be computed as:
+pᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ⱼ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[j]]
+
+See also: [`algorithm2_2!`](@ref)
+
+# Examples
+```jldoctest
+julia> Is = ([1, 2, 3], [4, 5, 6], [7, 8, 9]); ws = ([1.0, 2.0, 3.0], fill(0.5, 6), fill(0.1, 9));
+
+julia> algorithm2_2(Is, ws)
+3-element Vector{Float64}:
+ 0.16666666666666666
+ 0.3333333333333333
+ 0.5
+
+julia> w = ws[1][Is[1]] .* ws[2][Is[2]] .* ws[3][Is[3]]    # unnormalized
+3-element Vector{Float64}:
+ 0.05
+ 0.1
+ 0.15000000000000002
+
+julia> w ./= sum(w)                                        # normalized
+3-element Vector{Float64}:
+ 0.16666666666666666
+ 0.3333333333333333
+ 0.5
+```
+"""
+algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real} = algorithm2_2!(Vector{Base.promote_op(inv, T)}(undef, maximum(length, Is)), Is, ws)
+
+
+# function algorithm2_2_weightonly_quote(M::Int)
+#     Is = Expr(:tuple)
+#     ws = Expr(:tuple)
+#     bc = Expr(:tuple)
+#     for m = 1:M
+#         push!(Is.args, Symbol(:I_, m))
+#         push!(ws.args, Symbol(:w_, m))
+#         push!(bc.args, Expr(:call, :checkbounds, Symbol(:w_, m), Symbol(:I_, m)))
+#     end
+#     block = Expr(:block)
+#     loop = Expr(:for, Expr(:(=), :j, Expr(:call, :eachindex, ntuple(i -> Symbol(:I_, i), M)..., :w′)), block)
+#     e = Expr(:call, :*)
+#     for m = 1:M
+#         push!(e.args, Expr(:ref, Symbol(:w_, m), Expr(:ref, Symbol(:I_, m), :j)))
+#     end
+#     push!(block.args, Expr(:(=), Expr(:ref, :w′, :j), e))
+#     return quote
+#         $Is = Is
+#         $ws = ws
+#         $bc
+#         @inbounds @simd ivdep $loop
+#         return w′
+#     end
+# end
+
+# """
+#     algorithm2_2_weightonly!(w, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+
+# Compute the local product of weights, storing the result in `w`.
+
+# See also: [`algorithm2_2_weightonly`](@ref)
+# """
+# @generated function algorithm2_2_weightonly!(w′, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+#     algorithm2_2_weightonly_quote(M)
+# end
+
+# """
+#     algorithm2_2_weightonly(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+
+# Compute the local product of weights identified by the index sets `Is`, which select
+# the desired terms from the global weights `ws`. Mathematically, given:
+
+# I₁ ∈ ℕᴺ , 𝐰₁ ∈ ℝᴰ¹
+
+# I₂ ∈ ℕᴺ , 𝐰₂ ∈ ℝᴰ²
+
+# ⋮       , ⋮
+
+# Iₘ ∈ ℕᴺ , 𝐰ₘ ∈ ℝᴰᵐ
+
+# The iᵗʰ term will be computed as:
+# wᵢ′ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] = ∏ₘ₌₁ᴹ 𝐰ₘ,ⱼ : j = Iₘ[i]
+
+# See also: [`algorithm2_2_weightonly!`](@ref)
+# """
+# algorithm2_2_weightonly(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real} =
+#     algorithm2_2_weightonly!(Vector{T}(undef, maximum(length, Is)), Is, ws)
+
+
 ################
 
 #### Algorithm 3. -- FillMass
