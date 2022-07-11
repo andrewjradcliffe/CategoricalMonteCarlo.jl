@@ -265,8 +265,6 @@ See also: [`algorithm3!`](@ref)
 algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
     algorithm3!(similar(p, promote_type(T, S)), p, u)
 
-
-
 ################
 
 #### Algorithm 2.1. + Algorithm 3. (fused)
@@ -280,17 +278,30 @@ algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
 # pᵢ = u / (N - k), i=k+1,…,N
 # pᵢ = (1 - u) wᵢ / ∑ᵢ₌₁ᵏ wᵢ, i = 1,…,k
 """
-    normweights!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
+    algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{<:Real}, u::S) where {S<:AbstractFloat}
 
 Fill `p` with the probabilities which result from normalizing the weights selected by `I`
-from `w`, wherein zero or more of the elements of `w` has an unknown (set to 0) value.
+from `w`, wherein zero or more of the elements of `w` has an unknown (indicated by `0`) value.
 The total probability mass of the unknown category is specified by `u`.
 Caller must ensure that `u` is in the closed interval [0, 1].
 If all selected values are zero, `p` is filled with `1 / length(p)`.
 
-See also: [`normweights`](@ref)
+See also: [`algorithm2_1_algorithm3`](@ref)
+
+# Examples
+```jldoctest
+julia> I = [1, 2, 5, 6]; w = [10, 0, 30, 40, 0, 20]; u = 0.5;
+
+julia> algorithm2_1_algorithm3!(similar(I, Float64), I, w, u)
+4-element Vector{Float64}:
+ 0.16666666666666666
+ 0.25
+ 0.25
+ 0.3333333333333333
+```
 """
-function normweights!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
+function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
+    checkbounds(w, I)
     s = zero(T)
     z = 0
     @inbounds @simd for i ∈ eachindex(p, I)
@@ -310,19 +321,35 @@ function normweights!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S
 end
 
 """
-    normweights(I::Vector{Int}, w::Vector{<:Real}, u::AbstractFloat)
+    algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{<:Real}, u::AbstractFloat)
 
 Return a vector of probabilities, selecting components from `w` using the index set `I`.
-Categories with unknown weight are assumed to have a total probability mass `u`.
+Categories with unknown weight (indicated by `0` value) are assumed to have a total
+probability mass `u`. Equivalent to `algorithm3(algorithm2_1(I, w), u)` but more efficient.
 
-See also: [`normweights!`](@ref)
+See also: [`algorithm2_1_algorithm3!`](@ref)
+
+# Examples
+```jldoctest
+julia> I = [1, 2, 5, 6]; w = [10, 0, 30, 40, 0, 20]; u = 0.5;
+
+julia> algorithm2_1_algorithm3(I, w, u)
+4-element Vector{Float64}:
+ 0.16666666666666666
+ 0.25
+ 0.25
+ 0.3333333333333333
+
+julia> algorithm3(algorithm2_1(I, w), u)
+4-element Vector{Float64}:
+ 0.16666666666666666
+ 0.25
+ 0.25
+ 0.3333333333333333
+```
 """
-normweights(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u)); normweights!(similar(I, promote_type(T, S, Float64)), I, w, u))
-
-
-
-
+algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
+    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u)); algorithm2_1_algorithm3!(similar(I, promote_type(T, S, Float64)), I, w, u))
 
 ################
 # Algorithm 4
@@ -340,7 +367,7 @@ normweights(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat
 # In other words,
 # pᵢ = (w₂ᵢ * ∑ₗ w₁ₗ, i ∈ I ∖ I′) / (∑ₗ₌₁ᴺ w₂ₗ * ∑ₗ₌₁ᴺ w₁ₗ)
 
-function reweight!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
+function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
     s₁′ = zero(T)
     s₁ = zero(T)
     s₂ = zero(U)
@@ -361,7 +388,7 @@ function reweight!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<
     w₁
 end
 
-function reweight!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:AbstractFloat, T<:Real, U<:Real}
+function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:AbstractFloat, T<:Real, U<:Real}
     s₁′ = zero(T)
     s₁ = zero(T)
     s₂ = zero(U)
@@ -388,5 +415,5 @@ function reweight!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:Abs
     p
 end
 
-reweight(w₁::Vector{T}, w₂::Vector{U}) where {T<:Real, U<:Real} =
-    reweight!(similar(w₁, promote_type(T, U, Float64)), w₁, w₂)
+algorithm4(w₁::Vector{T}, w₂::Vector{U}) where {T<:Real, U<:Real} =
+    algorithm4!(similar(w₁, promote_type(T, U, Float64)), w₁, w₂)
