@@ -4,12 +4,13 @@ using Test
 
 import CategoricalMonteCarlo: _check_reducedims
 
-# @testset "CategoricalMonteCarlo.jl" begin
-# end
 const tests = [
     "utils.jl",
+    "normalizations.jl",
     "sampler.jl",
-    "tsampler.jl",
+    "tsampler_batch.jl",
+    "vsampler.jl",
+    "vtsampler_batch.jl",
 ]
 
 for t in tests
