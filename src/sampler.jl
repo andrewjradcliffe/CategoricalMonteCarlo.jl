@@ -51,15 +51,16 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init(T)
+    K, V, q = _sqhist_init(T, 0)
+    L, S = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
-        for (Iₛ, ω) ∈ a
-            n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(q, n)
-            marsaglia!(K, V, q, ω)
-            marsaglia_generate!(C, U, K, V)
+        for (Iₛ, p) ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
+            sqhist!(K, V, L, S, q, p)
+            generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
@@ -74,14 +75,15 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init(T)
+    K, V, q = _sqhist_init(T, 0)
+    L, S = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
-        Iₛ, ω = A[IA]
-        n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(q, n)
-        marsaglia!(K, V, q, ω)
-        marsaglia_generate!(C, U, K, V)
+        Iₛ, p = A[IA]
+        n = length(p)
+        resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
+        sqhist!(K, V, L, S, q, p)
+        generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
@@ -101,13 +103,11 @@ end
 
 function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {S<:Real} where {T<:AbstractFloat}
     _check_reducedims(B, A)
-    Iₛ, ω = A
-    K, V = marsaglia(ω)
-    n = length(K)
+    Iₛ, p = A
+    K, V = sqhist(p)
+    C = generate(K, V, size(B, 2))
     @inbounds for j ∈ axes(B, 2)
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+        c = C[j]
         B[Iₛ[c], j] += one(S)
     end
     B
@@ -120,18 +120,12 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init()
-    ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
-            resize!(K, n); resize!(V, n); resize!(q, n)
-            resize!(ω, n)
-            fill!(ω, inv(n))
-            marsaglia!(K, V, q, ω)
-            marsaglia_generate!(C, U, K, V)
+            generate!(C, U, n)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
@@ -146,17 +140,11 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init()
-    ω = Vector{Float64}()
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
-        resize!(K, n); resize!(V, n); resize!(q, n)
-        resize!(ω, n)
-        fill!(ω, inv(n))
-        marsaglia!(K, V, q, ω)
-        marsaglia_generate!(C, U, K, V)
+        generate!(C, U, n)
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
@@ -173,15 +161,13 @@ end
 
 # Oddly, the fastest sampler is non-allocating -- most likely due to
 # the elimination of store + access instructions associated with using a temporary array.
-function sample!(B::AbstractMatrix{S}, A::Vector{Int}) where {S<:Real}
-    _check_reducedims(B, A)
-    n = length(A)
-    K, V = marsaglia(fill(inv(n), n))
+function sample!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
+    _check_reducedims(B, Iₛ)
+    n = length(Iₛ)
+    C = generate(n, size(B, 2))
     @inbounds for j ∈ axes(B, 2)
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
-        B[A[c], j] += one(S)
+        c = C[j]
+        B[Iₛ[c], j] += one(S)
     end
     B
 end
@@ -192,15 +178,16 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init(T)
+    K, V, q = _sqhist_init(T, 0)
+    L, S = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
-        for ω ∈ a
-            n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(q, n)
-            marsaglia!(K, V, q, ω)
-            marsaglia_generate!(C, U, K, V)
+        for p ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
+            sqhist!(K, V, L, S, q, p)
+            generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[c, j, IR] += one(S)
@@ -215,14 +202,15 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) wher
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init(T)
+    K, V, q = _sqhist_init(T, 0)
+    L, S = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
-        ω = A[IA]
-        n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(q, n)
-        marsaglia!(K, V, q, ω)
-        marsaglia_generate!(C, U, K, V)
+        p = A[IA]
+        n = length(p)
+        resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
+        sqhist!(K, V, L, S, q, p)
+        generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
             B[c, j, IR] += one(S)
@@ -242,13 +230,10 @@ end
 
 function sample!(B::AbstractMatrix{S}, A::Vector{T}) where {S<:Real} where {T<:AbstractFloat}
     _check_reducedims(B, A)
-    ω = A
-    K, V = marsaglia(ω)
-    n = length(K)
+    K, V = sqhist(A)
+    C = generate(K, V, size(B, 2))
     @inbounds for j ∈ axes(B, 2)
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+        c = C[j]
         B[c, j] += one(S)
     end
     B
@@ -261,17 +246,17 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init(Tv)
+    K, V, q = _sqhist_init(Tv, 0)
+    L, S = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for sv ∈ a
-            (; n, nzind, nzval) = sv
-            Iₛ, ω = nzind, nzval
-            n = length(ω)
-            resize!(K, n); resize!(V, n); resize!(q, n)
-            marsaglia!(K, V, q, ω)
-            marsaglia_generate!(C, U, K, V)
+            Iₛ, p = sv.nzind, sv.nzval
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
+            sqhist!(K, V, L, S, q, p)
+            generate!(C, U, K, V)
             for j ∈ axes(B, 2)
                 c = C[j]
                 B[Iₛ[c], j, IR] += one(S)
@@ -286,16 +271,16 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
     C, U = _genstorage_init(Float64, size(B, 2))
-    K, V, q = _marsaglia_init(Tv)
+    K, V, q = _sqhist_init(Tv, 0)
+    L, S = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         sv = A[IA]
-        (; n, nzind, nzval) = sv
-        Iₛ, ω = nzind, nzval
-        n = length(ω)
-        resize!(K, n); resize!(V, n); resize!(q, n)
-        marsaglia!(K, V, q, ω)
-        marsaglia_generate!(C, U, K, V)
+        Iₛ, p = sv.nzind, sv.nzval
+        n = length(p)
+        resize!(K, n); resize!(V, n); resize!(L, n); resize!(S, n); resize!(q, n)
+        sqhist!(K, V, L, S, q, p)
+        generate!(C, U, K, V)
         for j ∈ axes(B, 2)
             c = C[j]
             B[Iₛ[c], j, IR] += one(S)
@@ -316,13 +301,11 @@ end
 function sample!(B::AbstractMatrix{S}, A::SparseVector{T}) where {S<:Real} where {T<:AbstractFloat}
     _check_reducedims(B, A)
     (; n, nzind, nzval) = A
-    Iₛ, ω = nzind, nzval
-    K, V = marsaglia(ω)
-    n = length(K)
+    Iₛ, p = A.nzind, A.nzval
+    K, V = sqhist(p)
+    C = generate(K, V, size(B, 2))
     @inbounds for j ∈ axes(B, 2)
-        u = rand()
-        j′ = floor(Int, muladd(u, n, 1))
-        c = u < V[j′] ? j′ : K[j′]
+        c = C[j]
         B[Iₛ[c], j] += one(S)
     end
     B
