@@ -1,5 +1,101 @@
 # Tests of normalization methods
 
+@testset "algorithm 2.1" begin
+    w = [7.3, 10.2, 5.1, 2.7, 2.89]
+    p = [1.0]
+    for i ∈ eachindex(w)
+        @test algorithm2_1([i], w) ≈ p
+    end
+    for I ∈ ([1, 2], [1, 3], [1, 4], [1, 5], [2, 3], [2, 4], [2, 5], [3, 4], [3, 5], [4, 5],
+             [1, 2, 3], [1, 2, 4], [1, 2, 5], [2, 3, 4], [2, 3, 5], [3, 4, 5],
+             [1, 2, 3, 4], [1, 2, 3, 5], [2, 3, 4, 5],
+             [1, 2, 3, 4, 5])
+        @test algorithm2_1(I, w) ≈ w[I] ./ sum(w[I])
+    end
+    @test algorithm2_1([1, 1, 1], w) ≈ fill(1/3, 3)
+    # non-Float64 Type handling
+    I1 = [1]
+    I2 = [1, 2]
+    for T ∈ (Float16, Float32, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128})
+        𝑤 = T.(w)
+        @test algorithm2_1(I1, 𝑤) ≈ T[1]
+        @test algorithm2_1(I2, 𝑤) ≈ 𝑤[I2] ./ sum(𝑤[I2])
+    end
+
+    # Aberrant behavior
+    @testset "weight < 0" begin
+        w = [-5, 4, 3, 2, 1];
+        I = [1, 5, 2];
+        @test algorithm2_1(I, w) == [-Inf, Inf, Inf]
+        I = [2, 3]
+        @test algorithm2_1(I, w) == [4/7, 3/7]
+        I = [1, 2, 2]
+        @test algorithm2_1(I, w) == [-prevfloat(5/3), 4/3, 4/3]
+    end
+    # zeros behavior
+    w = zeros(5)
+    I = [1, 2, 3]
+    @test all(algorithm2_1(I, w) .=== [-NaN, -NaN, -NaN])
+    w[3] = 5
+    @test algorithm2_1(I, w) == [0.0, 0.0, 1.0]
+
+    @testset "NaN handling (lack thereof)" begin
+        # things which generate NaNs by propagation
+        w = [2.0, 10.0, 5.0, 1.0, NaN]
+        I = [1, 3, 5]
+        @test all(algorithm2_1(I, w) .=== [NaN, NaN, NaN])
+        I = [1, 5, 5]
+        @test all(algorithm2_1(I, w) .=== [NaN, NaN, NaN])
+        I = [5, 5, 5]
+        @test all(algorithm2_1(I, w) .=== [NaN, NaN, NaN])
+
+        # propagating NaNs with signbit set
+        w = [2.0, 10.0, 5.0, 1.0, -NaN]
+        I = [1, 3, 5]
+        @test all(algorithm2_1(I, w) .=== [-NaN, -NaN, -NaN])
+        I = [1, 5, 5]
+        @test all(algorithm2_1(I, w) .=== [-NaN, -NaN, -NaN])
+        I = [5, 5, 5]
+        @test all(algorithm2_1(I, w) .=== [-NaN, -NaN, -NaN])
+    end
+
+    @testset "±Inf handling (lack thereof)" begin
+        w = [2.0, 10.0, 5.0, 1.0, Inf]
+        I = [1, 3, 5]
+        @test all(algorithm2_1(I, w) .=== [0.0, 0.0, -NaN])
+        w = [2.0, 10.0, 5.0, 1.0, prevfloat(Inf)]
+        I = [1, 3, 5]
+        p = algorithm2_1(I, w)
+        @test all(!isnan, p)
+        @test all(!isinf, p)
+        # integer overflow
+        w = [5, 4, 3, 1, typemax(Int) - 1]
+        I = [1, 3, 5]
+        @test algorithm2_1(I, w) == [-5.421010862427522e-19, -3.2526065174565133e-19, -1.0]
+        I = [4, 5] # on the cusp of overflow
+        @test algorithm2_1(I, w) == [1.0842021724855044e-19, 1.0]
+    end
+
+    @testset "sweep precision (SIMD rounding)" begin
+        rng = Xoshiro(1234)
+        w = rand(rng, 256)
+        p = Vector{Float64}(undef, 0)
+        for m = -10:10
+            w .*= 10.0^m
+            for i = 1:8
+                for j = -1:1
+                    n = (1 << i) + j
+                    I = rand(1:256, n)
+                    resize!(p, n)
+                    algorithm2_1!(p, I, w)
+                    @test all(!iszero, p)
+                    @test sum(p) ≈ 1.0
+                end
+            end
+        end
+    end
+end
+
 @testset "algorithm 3" begin
     w = [0.0, 10.0, 5.0, 0.0, 2.5]
     p = [0.25, 0.2857142857142857, 0.14285714285714285, 0.25, 0.07142857142857142]
