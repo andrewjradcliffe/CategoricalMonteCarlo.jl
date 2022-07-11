@@ -57,9 +57,10 @@ bounds_cat(A::SparseVector{T}) where {T<:AbstractFloat} = (n = num_cat(A); n ≥
 
 ################
 function _checkindex_reducedims(ax, lb, ub)
-    checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
+    (checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub)) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     true
 end
+
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
     lb, ub = bounds_cat(A)
