@@ -439,6 +439,19 @@ Normalize `w` to probabilities, storing the result in `p`, spreading probability
 mass `u` across the 0 or more elements which are equal to zero. It is assumed
 (note: not checked!) that `0 ≤ u ≤ 1`. If all values of `w` are zero,
 `p` is filled with `1 / length(p)`.
+
+Mathematically, given:
+
+𝐰 ∈ ℝᴺ, u ∈ R, 0 ≤ u ≤ 1, J = {i : 𝐰ᵢ = 0}
+
+```
+pᵢ =
+    Case 1: if J ≠ ∅
+            u / |J|                     if i ∈ J
+            (1 - u) * 𝐰ᵢ / ∑ᵢ₌₁ᴺ 𝐰ᵢ     otherwise
+    Case 2: if J = {1,…,N}
+            1/N
+```
 """
 function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
     s = zero(T)
@@ -461,14 +474,15 @@ end
 """
     algorithm3(w::Vector{<:Real}, u::AbstractFloat)
 
-Normalize `w` to probabilities, spreading the probability mass `u` across
-the 0 or more elements which are equal to zero. It is assumed (note: not checked!)
-that `0 ≤ u ≤ 1`. If all values of `w` are zero, `p` is filled with `1 / length(p)`.
+Normalize `w` to probabilities, spreading the probability mass `0 ≤ u ≤ 1` across
+the 0 or more elements which are equal to zero. If all values of `w` are zero,
+`p` is filled with `1 / length(p)`.
 
 See also: [`algorithm3!`](@ref)
 """
 algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    algorithm3!(similar(p, promote_type(T, S)), p, u)
+    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: 0 ≤ u ≤ 1"));
+     algorithm3!(similar(p, promote_type(T, S)), p, u))
 
 ################
 
@@ -554,7 +568,8 @@ julia> algorithm3(algorithm2_1(I, w), u)
 ```
 """
 algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u)); algorithm2_1_algorithm3!(similar(I, promote_type(T, S, Float64)), I, w, u))
+    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: 0 ≤ u ≤ 1"));
+     algorithm2_1_algorithm3!(similar(I, promote_type(T, S, Float64)), I, w, u))
 
 ################
 # Algorithm 4
