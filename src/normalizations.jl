@@ -97,7 +97,7 @@ end
 
 function unsafe_normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
     s = zero(S)
-    @inbounds @simd for i ∈ eachindex(I, p)
+    @inbounds @simd ivdep for i ∈ eachindex(I, p)
         w̃ = w[I[i]]
         s += w̃
         p[i] = w̃
@@ -116,7 +116,8 @@ Fill `p` with the probabilities that result from normalizing the weights selecte
 Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
 """
 function normweights!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
-    _check_normweights(I, w)
+    # _check_normweights(I, w)
+    checkbounds(w, I)
     unsafe_normweights!(p, I, w)
 end
 
