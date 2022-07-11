@@ -9,7 +9,9 @@ using MarsagliaDiscreteSamplers
 
 import MarsagliaDiscreteSamplers: _sqhist_init
 
-export sample, sample!, tsample, tsample!, num_cat, categorical, categorical!
+export num_cat
+export sample, sample!, tsample, tsample!
+export vsample, vsample!, vtsample, vtsample!
 
 include("utils.jl")
 include("normalizations.jl")
