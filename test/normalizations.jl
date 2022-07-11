@@ -15,6 +15,13 @@
     # throws where appropriate
     @test_throws DimensionMismatch algorithm3!(p, zeros(6), 0.5)
     @test_throws DimensionMismatch algorithm3!(zeros(6), p, 0.5)
+    # zeros behavior
+    w = zeros(5)
+    p = similar(w)
+    for u ∈ (0.0, 0.5, 1.0, 1.5)
+        algorithm3!(p, w, 0.0)
+        @test p == fill(0.2, 5)
+    end
 
     @testset "NaN handling (lack thereof)" begin
         # things which generate NaNs
@@ -201,7 +208,7 @@ end
     w₂ = [10, 20, 10, 20, 10]
     p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/7, 2/7, 1/7, 2/7, 1/7]
 end
@@ -211,7 +218,7 @@ end
     w₂ = [10, 20, 0, 20, 10]
     p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q[3] == p[3]
     @test q[1] + q[2] + q[4] + q[5] == p[1] + p[2] + p[4] + p[5]
@@ -222,7 +229,7 @@ end
     w₂ = [10, 20, 0, 0, 10]
     p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q[3] == p[3] && q[4] == p[4]
     @test q[1] + q[2] + q[5] == p[1] + p[2] + p[5]
@@ -233,7 +240,7 @@ end
     w₂ = [0, 0, 0, 0, 0]
     p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test all(q .== p)
 end
@@ -242,9 +249,9 @@ end
     w = [2, 1, 3, 4, 5]
     u = 1/2
     w₂ = [10, 20, 10, 20, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/7, 2/7, 1/7, 2/7, 1/7]
 end
@@ -253,9 +260,9 @@ end
     w = [2, 1, 3, 4, 0]
     u = 1/2
     w₂ = [10, 20, 10, 20, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/7, 2/7, 1/7, 2/7, 1/7]
 end
@@ -264,9 +271,9 @@ end
     w = [2, 1, 3, 0, 0]
     u = 1/2
     w₂ = [10, 20, 10, 20, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/7, 2/7, 1/7, 2/7, 1/7]
 end
@@ -275,9 +282,9 @@ end
     w = [0, 0, 0, 0, 0]
     u = 1/2
     w₂ = [10, 20, 10, 20, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/7, 2/7, 1/7, 2/7, 1/7]
 end
@@ -286,16 +293,16 @@ end
     w = [2, 1, 3, 4, 0]
     u = 1/2
     w₂ = [10, 20, 0, 20, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [0.14166666666666666, 0.2833333333333333, 0.15000000000000002, 0.2833333333333333, 0.14166666666666666]
 
     w₂ = [10, 20, 10, 20, 0]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q[5] == u
 end
@@ -304,16 +311,16 @@ end
     w = [2, 1, 3, 0, 0]
     u = 1/2
     w₂ = [10, 20, 0, 20, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/8, 1/4, 1/4, 1/4, 1/8]
 
     w₂ = [10, 20, 10, 20, 0]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q[5] == u / 2
     @test q == [1/8, 1/4, 1/8, 1/4, 1/4]
@@ -323,24 +330,24 @@ end
     w = [2, 1, 3, 0, 0]
     u = 1/2
     w₂ = [10, 20, 0, 0, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == [1/8, 1/4, 1/4, 1/4, 1/8]
 
     w₂ = [10, 20, 10, 0, 0]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q[5] == u / 2
     @test q == [1/8, 1/4, 1/8, 1/4, 1/4]
 
     w₂ = [0, 20, 10, 20, 0]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q[5] == u / 2
     @test q == [0.16666666666666666, 0.2333333333333333, 0.11666666666666665, 0.2333333333333333, 0.25]
@@ -350,9 +357,9 @@ end
     w = [2, 1, 3, 0, 0]
     u = 1/2
     w₂ = [0, 0, 0, 0, 0]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q == p
 end
@@ -361,102 +368,102 @@ end
     w = [0, 0, 0, 0, 0]
     u = 1/2
     w₂ = [10, 20, 0, 0, 10]
-    p = normweights(I′, w, u)
+    p = algorithm2_1_algorithm3(I′, w, u)
     @test sum(p) ≈ 1
-    q = reweight!(deepcopy(p), w₂)
+    q = algorithm4(p, w₂)
     @test sum(q) ≈ 1
     @test q ≈ [0.15, 0.3, 0.2, 0.2, 0.15]
 end
-@testset "Monte Carlo, re-weighted: 1 unchanged component" begin
-    I′ = [1, 2, 3, 4, 5]
-    w = [2, 1, 3, 4, 5]
-    w₂ = [10, 20, 0, 20, 10]
-    A = weightedmcadd1(Int, (I′, w₂), w, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
-end
-@testset "Monte Carlo, re-weighted: all unchanged component" begin
-    I′ = [1, 2, 3, 4, 5]
-    w = [2, 1, 3, 4, 5]
-    w₂ = [0, 0, 0, 0, 0]
-    A = weightedmcadd1(Int, (I′, w₂), w, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
-end
-@testset "Monte Carlo, re-weighted: 1 unchanged component, 0 unknown component" begin
-    I′ = [1, 2, 3, 4, 5]
-    w = [2, 1, 3, 4, 5]
-    w₂ = [10, 20, 0, 20, 10]
-    u = 1/2
-    A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w, u)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
-end
-@testset "Monte Carlo, re-weighted: 1 unchanged component, 1 unknown component" begin
-    I′ = [1, 2, 3, 4, 5]
-    w = [2, 1, 3, 4, 0]
-    w₂ = [10, 20, 0, 20, 10]
-    u = 1/2
-    A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w, u)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
+# @testset "Monte Carlo, re-weighted: 1 unchanged component" begin
+#     I′ = [1, 2, 3, 4, 5]
+#     w = [2, 1, 3, 4, 5]
+#     w₂ = [10, 20, 0, 20, 10]
+#     A = weightedmcadd1(Int, (I′, w₂), w, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
+# end
+# @testset "Monte Carlo, re-weighted: all unchanged component" begin
+#     I′ = [1, 2, 3, 4, 5]
+#     w = [2, 1, 3, 4, 5]
+#     w₂ = [0, 0, 0, 0, 0]
+#     A = weightedmcadd1(Int, (I′, w₂), w, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
+# end
+# @testset "Monte Carlo, re-weighted: 1 unchanged component, 0 unknown component" begin
+#     I′ = [1, 2, 3, 4, 5]
+#     w = [2, 1, 3, 4, 5]
+#     w₂ = [10, 20, 0, 20, 10]
+#     u = 1/2
+#     A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w, u)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
+# end
+# @testset "Monte Carlo, re-weighted: 1 unchanged component, 1 unknown component" begin
+#     I′ = [1, 2, 3, 4, 5]
+#     w = [2, 1, 3, 4, 0]
+#     w₂ = [10, 20, 0, 20, 10]
+#     u = 1/2
+#     A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w, u)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
 
-    w = [2, 1, 0, 4, 5]
-    A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w, u)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
-end
-@testset "Monte Carlo, re-weighted: 1 unchanged component, 2 unknown component" begin
-    I′ = [1, 2, 3, 4, 5]
-    w = [2, 1, 3, 0, 0]
-    w₂ = [10, 20, 0, 20, 10]
-    u = 1/2
-    A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w, u)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
+#     w = [2, 1, 0, 4, 5]
+#     A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w, u)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
+# end
+# @testset "Monte Carlo, re-weighted: 1 unchanged component, 2 unknown component" begin
+#     I′ = [1, 2, 3, 4, 5]
+#     w = [2, 1, 3, 0, 0]
+#     w₂ = [10, 20, 0, 20, 10]
+#     u = 1/2
+#     A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w, u)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
 
-    w = [2, 1, 0, 4, 0]
-    A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w, u)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
-end
-@testset "Monte Carlo, re-weighted: 1 unchanged component, all unknown component" begin
-    I′ = [1, 2, 3, 4, 5]
-    w = [0, 0, 0, 0, 0]
-    w₂ = [10, 20, 0, 20, 10]
-    u = 1/2
-    A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
-    Σ = sum(A, dims=1)
-    @test all(==(1), Σ)
-    weightedmcadd1!(A, (I′, w₂), w, u)
-    Σ = sum(A, dims=1)
-    @test all(==(2), Σ)
-end
-@testset "reweight behavior" begin
-    @test !isequal(reweight(zeros(3), zeros(3)), [NaN, NaN, NaN])
-    @test !isequal(reweight(rand(3), zeros(3)), [NaN, NaN, NaN])
-    @test !isequal(reweight(zeros(3), rand(3)), [NaN, NaN, NaN])
+#     w = [2, 1, 0, 4, 0]
+#     A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w, u)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
+# end
+# @testset "Monte Carlo, re-weighted: 1 unchanged component, all unknown component" begin
+#     I′ = [1, 2, 3, 4, 5]
+#     w = [0, 0, 0, 0, 0]
+#     w₂ = [10, 20, 0, 20, 10]
+#     u = 1/2
+#     A = weightedmcadd1(Int, (I′, w₂), w, u, 10)
+#     Σ = sum(A, dims=1)
+#     @test all(==(1), Σ)
+#     weightedmcadd1!(A, (I′, w₂), w, u)
+#     Σ = sum(A, dims=1)
+#     @test all(==(2), Σ)
+# end
+@testset "algorithm4 behavior" begin
+    @test !isequal(algorithm4(zeros(3), zeros(3)), [NaN, NaN, NaN])
+    @test !isequal(algorithm4(rand(3), zeros(3)), [NaN, NaN, NaN])
+    @test !isequal(algorithm4(zeros(3), rand(3)), [NaN, NaN, NaN])
 end
 @testset "normalizations, application order effects" begin
     # 3 -> 4, w₁ ∌ 0, w₂ ∋ 0
@@ -465,10 +472,10 @@ end
     u = 0.5
     ω₁ = algorithm3(w₁, u)
     @test ω₁ ≈ w₁ ./ sum(w₁)
-    ω = reweight(ω₁, w₂)
+    ω = algorithm4(ω₁, w₂)
     @test sum(ω) ≈ 1
     @test ω[5] == ω₁[5]
-    @test ω ≉ reweight(rand(5), w₂)
+    @test ω ≉ algorithm4(rand(5), w₂)
     # 3 -> 4, w₁ ∋ 0, w₂ ∌ 0
     w₁ = [1., 2, 3, 4, 0]
     w₂ = [2, 1, 3, 4, 5]
@@ -477,16 +484,16 @@ end
     @test sum(ω₁) ≈ 1
     @test 0 ∉ ω₁
     @test ω₁[5] == u
-    ω = reweight(ω₁, w₂)
+    ω = algorithm4(ω₁, w₂)
     @test sum(ω) ≈ 1
-    @test ω ≈ reweight(rand(5), w₂)
+    @test ω ≈ algorithm4(rand(5), w₂)
     # 3 -> 4, w₁ ∌ 0, w₂ ∌ 0
     w₁ = [1., 2, 3, 4, 5]
     w₂ = [2, 1, 3, 4, 1]
     u = 0.5
     ω₁ = algorithm3(w₁, u)
     @test ω₁ ≈ w₁ ./ sum(w₁)
-    ω = reweight(ω₁, w₂)
+    ω = algorithm4(ω₁, w₂)
     @test sum(ω) ≈ 1
     @test ω[5] ≉ ω₁[5]
     # 3 -> 4, w₁ ∋ 0, w₂ ∋ 0
@@ -497,7 +504,7 @@ end
     ω₁ = algorithm3(w₁, u)
     @test sum(ω₁) ≈ 1
     @test 0 ∉ ω₁
-    ω = reweight(ω₁, w₂)
+    ω = algorithm4(ω₁, w₂)
     J₁ = findall(iszero, w₁)
     J₂ = findall(iszero, w₂)
     I₁′ = findall(!iszero, w₁)
@@ -505,7 +512,7 @@ end
     @test sum(ω) ≈ 1
     @test isdisjoint(J₁, I₂′)
     @test ω[5] == ω₁[5]
-    @test ω ≉ reweight(rand(5), w₂)
+    @test ω ≉ algorithm4(rand(5), w₂)
     # sub-case 2: J₁ ∩ I₂′ ≠ ∅
     w₁ = [1., 2, 3, 4, 0]
     w₂ = [2, 1, 0, 0, 5]
@@ -513,7 +520,7 @@ end
     ω₁ = algorithm3(w₁, u)
     @test sum(ω₁) ≈ 1
     @test 0 ∉ ω₁
-    ω = reweight(ω₁, w₂)
+    ω = algorithm4(ω₁, w₂)
     J₁ = findall(iszero, w₁)
     J₂ = findall(iszero, w₂)
     I₁′ = findall(!iszero, w₁)
@@ -527,7 +534,7 @@ end
     w₁ = [1., 2, 3, 4, 5]
     w₂ = [2, 1, 3, 4, 0]
     u = 0.5
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁[5] == w₁[5] / sum(w₁)
@@ -538,7 +545,7 @@ end
     w₁ = [1., 2, 3, 4, 0]
     w₂ = [2, 1, 3, 4, 1]
     u = 0.5
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁[5] ≉ w₁[5] / sum(w₁)
@@ -549,7 +556,7 @@ end
     w₁ = [1., 2, 3, 4, 5]
     w₂ = [2, 1, 3, 4, 1]
     u = 0.5
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁ ≉ w₁ ./ sum(w₁)
     ω = algorithm3(ω₁, u)
@@ -568,7 +575,7 @@ end
     I₂′ = findall(!iszero, w₂)
     @test !isdisjoint(J₁, J₂)
     @test isdisjoint(J₁, I₂′)
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
@@ -587,7 +594,7 @@ end
     I₂′ = findall(!iszero, w₂)
     @test isdisjoint(J₁, J₂)
     @test !isdisjoint(J₁, I₂′)
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[4] == w₁[4] / sum(w₁)
     @test ω₁ ≉ w₁ ./ sum(w₁)
@@ -607,7 +614,7 @@ end
     I₂′ = findall(!iszero, w₂)
     @test !isdisjoint(J₁, J₂)
     @test !isdisjoint(J₁, I₂′)
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
@@ -628,7 +635,7 @@ end
     @test isdisjoint(J₁, I₂′)
     @test !isdisjoint(J₂, I₁′)
     @test J₂ ⊇ J₁
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[3] == ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
@@ -650,7 +657,7 @@ end
     @test !isdisjoint(J₁, I₂′)
     @test !isdisjoint(J₂, I₁′)
     @test J₂ ⊉ J₁
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[5] == 0.0
     @test ω₁[3] != 0.0
@@ -675,7 +682,7 @@ end
     @test !isdisjoint(J₁, I₂′)
     @test !isdisjoint(J₂, I₁′)
     @test J₂ ⊉ J₁
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[2] == w₁[2] / sum(w₁)
     @test ω₁[4] == w₁[4] / sum(w₁)
@@ -700,7 +707,7 @@ end
     @test !isdisjoint(J₁, I₂′)
     @test isdisjoint(J₂, I₁′)
     @test J₁ ⊇ J₁
-    ω₁ = reweight(w₁, w₂)
+    ω₁ = algorithm4(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁[3] != 0.0
     @test ω₁[4] == 0.0
