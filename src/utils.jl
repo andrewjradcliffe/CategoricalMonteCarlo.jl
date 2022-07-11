@@ -57,9 +57,9 @@ bounds_cat(A::SparseVector{T}) where {T<:AbstractFloat} = (n = num_cat(A); n ≥
 
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
-    n_cat = num_cat(A)
-    n_cat′ = length(axes(B, 1))
-    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    lb, ub = bounds_cat(A)
+    ax = axes(B, 1)
+    checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     length(Rdims) ≤ ndims(A) || throw(DimensionMismatch("cannot reduce $(ndims(A))-dimensional array to $(length(Rdims)) trailing dimensions"))
     for i ∈ eachindex(Rdims)
         Ri, Ai = Rdims[i], axes(A, i)
@@ -69,30 +69,30 @@ bounds_cat(A::SparseVector{T}) where {T<:AbstractFloat} = (n = num_cat(A); n ≥
 end
 
 @noinline function _check_reducedims(B, A::Tuple{Vector{Int}, Vector{<:AbstractFloat}})
-    n_cat = num_cat(A)
-    n_cat′ = length(axes(B, 1))
-    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    lb, ub = bounds_cat(A)
+    ax = axes(B, 1)
+    checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     true
 end
 
 @noinline function _check_reducedims(B, A::Vector{Int})
-    n_cat = num_cat(A)
-    n_cat′ = length(axes(B, 1))
-    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    lb, ub = bounds_cat(A)
+    ax = axes(B, 1)
+    checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     true
 end
 
 @noinline function _check_reducedims(B, A::Vector{T}) where {T<:AbstractFloat}
-    n_cat = num_cat(A)
-    n_cat′ = length(axes(B, 1))
-    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    lb, ub = bounds_cat(A)
+    ax = axes(B, 1)
+    checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     true
 end
 
 @noinline function _check_reducedims(B, A::SparseVector{T}) where {T<:AbstractFloat}
-    n_cat = num_cat(A)
-    n_cat′ = length(axes(B, 1))
-    n_cat ≤ n_cat′ || throw(DimensionMismatch("cannot sample from $(n_cat) categories into array with $(n_cat′) categories"))
+    lb, ub = bounds_cat(A)
+    ax = axes(B, 1)
+    checkindex(Bool, ax, lb) && checkindex(Bool, ax, ub) || throw(DimensionMismatch("cannot sample from categories on range $(lb:ub) into array with first dimension $(ax)"))
     true
 end
 
