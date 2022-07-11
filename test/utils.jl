@@ -65,3 +65,14 @@ end
     A = [[([1, 2], [0.3, 0.7]), ([1,2,3,4], [0.2, 0.3, 0.4, 0.1]), (Int[], Float64[])]]
     @test num_cat(A) == 4
 end
+
+@testset "splitranges" begin
+    b = 16
+    for a = -16:16
+        ur = a:b
+        for c = 1:b
+            rs = splitranges(ur, c)
+            @test sum(length, rs) == length(ur)
+        end
+    end
+end
