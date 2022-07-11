@@ -199,7 +199,7 @@ end
     I′ = [1, 2, 3, 4, 5]
     w = [2, 1, 3, 4, 5]
     w₂ = [10, 20, 10, 20, 10]
-    p = normweights(I′, w)
+    p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
     q = reweight!(deepcopy(p), w₂)
     @test sum(q) ≈ 1
@@ -209,7 +209,7 @@ end
     I′ = [1, 2, 3, 4, 5]
     w = [2, 1, 3, 4, 5]
     w₂ = [10, 20, 0, 20, 10]
-    p = normweights(I′, w)
+    p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
     q = reweight!(deepcopy(p), w₂)
     @test sum(q) ≈ 1
@@ -220,7 +220,7 @@ end
     I′ = [1, 2, 3, 4, 5]
     w = [2, 1, 3, 4, 5]
     w₂ = [10, 20, 0, 0, 10]
-    p = normweights(I′, w)
+    p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
     q = reweight!(deepcopy(p), w₂)
     @test sum(q) ≈ 1
@@ -231,7 +231,7 @@ end
     I′ = [1, 2, 3, 4, 5]
     w = [2, 1, 3, 4, 5]
     w₂ = [0, 0, 0, 0, 0]
-    p = normweights(I′, w)
+    p = algorithm2_1(I′, w)
     @test sum(p) ≈ 1
     q = reweight!(deepcopy(p), w₂)
     @test sum(q) ≈ 1
@@ -463,7 +463,7 @@ end
     w₁ = [1., 2, 3, 4, 5]
     w₂ = [2, 1, 3, 4, 0]
     u = 0.5
-    ω₁ = normweights(w₁, u)
+    ω₁ = algorithm3(w₁, u)
     @test ω₁ ≈ w₁ ./ sum(w₁)
     ω = reweight(ω₁, w₂)
     @test sum(ω) ≈ 1
@@ -473,7 +473,7 @@ end
     w₁ = [1., 2, 3, 4, 0]
     w₂ = [2, 1, 3, 4, 5]
     u = 0.5
-    ω₁ = normweights(w₁, u)
+    ω₁ = algorithm3(w₁, u)
     @test sum(ω₁) ≈ 1
     @test 0 ∉ ω₁
     @test ω₁[5] == u
@@ -484,7 +484,7 @@ end
     w₁ = [1., 2, 3, 4, 5]
     w₂ = [2, 1, 3, 4, 1]
     u = 0.5
-    ω₁ = normweights(w₁, u)
+    ω₁ = algorithm3(w₁, u)
     @test ω₁ ≈ w₁ ./ sum(w₁)
     ω = reweight(ω₁, w₂)
     @test sum(ω) ≈ 1
@@ -494,7 +494,7 @@ end
     w₁ = [1., 2, 3, 4, 0]
     w₂ = [2, 1, 3, 4, 0]
     u = 0.5
-    ω₁ = normweights(w₁, u)
+    ω₁ = algorithm3(w₁, u)
     @test sum(ω₁) ≈ 1
     @test 0 ∉ ω₁
     ω = reweight(ω₁, w₂)
@@ -510,7 +510,7 @@ end
     w₁ = [1., 2, 3, 4, 0]
     w₂ = [2, 1, 0, 0, 5]
     u = 0.5
-    ω₁ = normweights(w₁, u)
+    ω₁ = algorithm3(w₁, u)
     @test sum(ω₁) ≈ 1
     @test 0 ∉ ω₁
     ω = reweight(ω₁, w₂)
@@ -531,7 +531,7 @@ end
     @test sum(ω₁) ≈ 1
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁[5] == w₁[5] / sum(w₁)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω == ω₁
     # 4 -> 3, w₁ ∋ 0, w₂ ∌ 0
@@ -542,7 +542,7 @@ end
     @test sum(ω₁) ≈ 1
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁[5] ≉ w₁[5] / sum(w₁)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω == ω₁
     # 4 -> 3, w₁ ∌ 0, w₂ ∌ 0
@@ -552,7 +552,7 @@ end
     ω₁ = reweight(w₁, w₂)
     @test sum(ω₁) ≈ 1
     @test ω₁ ≉ w₁ ./ sum(w₁)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω == ω₁
     # 4 -> 3, w₁ ∋ 0, w₂ ∋ 0
@@ -573,7 +573,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
     # sub-case 2: J₁ ∩ J₂ = ∅, J₁ ∩ I₂′ ≠ ∅
@@ -592,7 +592,7 @@ end
     @test ω₁[4] == w₁[4] / sum(w₁)
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω == ω₁
     # sub-case 3: J₁ ∩ J₂ ≠ ∅, |J₁| > |J₁ ∩ J₂|, J₁ ∩ I₂′ ≠ ∅
@@ -612,7 +612,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
     # sub-case 4: J₁ ∩ J₂ ≠ ∅, |J₂| > |J₁ ∩ J₂|, J₂ ⊇ J₁, J₁ ∩ I₂′ = ∅
@@ -633,7 +633,7 @@ end
     @test ω₁[3] == ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[3] == ω[5] == u / 2
     # sub-case 5: J₁ ∩ J₂ ≠ ∅, |J₂| > |J₁ ∩ J₂|, J₂ ⊉ J₁, J₁ ∩ I₂′ ≠ ∅
@@ -656,7 +656,7 @@ end
     @test ω₁[3] != 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
     # sub-case 6: J₁ ∩ J₂ ≠ ∅, |J₂| ≯ |J₁ ∩ J₂|, J₂ ⊉ J₁, J₁ ∩ I₂′ ≠ ∅
@@ -683,7 +683,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
     # sub-case 7: J₁ ∩ J₂ ≠ ∅, |J₁| > |J₁ ∩ J₂|, J₁ ⊇ J₁, J₁ ∩ I₂′ ≠ ∅, J₂ ∩ I₁′ = ∅
@@ -707,7 +707,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
-    ω = normweights(ω₁, u)
+    ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[4] == u / 2
     @test ω[5] == u / 2
