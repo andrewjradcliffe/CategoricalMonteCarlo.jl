@@ -557,11 +557,11 @@ end
 #     @test all(==(2), Σ)
 # end
 @testset "algorithm4 behavior" begin
-    @test !isequal(algorithm4(zeros(3), zeros(3)), [NaN, NaN, NaN])
+    @test isequal(algorithm4(zeros(3), zeros(3)), [NaN, NaN, NaN])
     @test !isequal(algorithm4(rand(3), zeros(3)), [NaN, NaN, NaN])
-    @test !isequal(algorithm4(zeros(3), rand(3)), [NaN, NaN, NaN])
+    @test isequal(algorithm4(zeros(3), rand(3)), [NaN, NaN, NaN])
 end
-@testset "normalizations, application order effects" begin
+@testset "algorithm3, algorithm4, application order effects" begin
     # 3 -> 4, w₁ ∌ 0, w₂ ∋ 0
     w₁ = [1., 2, 3, 4, 5]
     w₂ = [2, 1, 3, 4, 0]
@@ -676,6 +676,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -695,6 +696,7 @@ end
     @test ω₁[4] == w₁[4] / sum(w₁)
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω == ω₁
@@ -715,6 +717,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -736,6 +739,7 @@ end
     @test ω₁[3] == ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[3] == ω[5] == u / 2
@@ -759,6 +763,7 @@ end
     @test ω₁[3] != 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -786,6 +791,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -810,6 +816,7 @@ end
     @test ω₁[5] == 0.0
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
+    @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[4] == u / 2
