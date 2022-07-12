@@ -30,7 +30,7 @@ julia> normalize1!([1.0, 2.0, Inf])
    0.0
  NaN
 
-julia> normalize1!([1.0, 2.0, NaN])    # NaN propagates, as expected
+julia> normalize1!([1.0, 2.0, NaN])     # NaN propagates, as expected
 3-element Vector{Float64}:
  NaN
  NaN
@@ -581,11 +581,36 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:A
 # w₂ ∈ ℝᴺ : the quantity which is undefined for I ∖ I′; undefined shall be encoded
 # by a value of zero.
 # pᵢ = w₁ᵢ / ∑ₗ₌₁ᴺ w₁ₗ, i ∈ I ∖ I′
-# mᵏⁿᵒʷⁿ = ∑ᵢ pᵢ, i ∈ ∈ I ∖ I′
+# mᵏⁿᵒʷⁿ = ∑ᵢ pᵢ, i ∈ I ∖ I′
 # mᵘⁿᵈᵉᶠⁱⁿᵉᵈ = 1 - mᵏⁿᵒʷⁿ = (∑ᵢ w₁ᵢ, i ∈ I′) / ∑ₗ₌₁ᴺ w₁ₗ
 # pᵢ = mᵘⁿᵈᵉᶠⁱⁿᵉᵈ * w₂ᵢ / ∑ₗ₌₁ᴺ w₂ₗ, i ∈ I′
 # In other words,
 # pᵢ = (w₂ᵢ * ∑ₗ w₁ₗ, i ∈ I ∖ I′) / (∑ₗ₌₁ᴺ w₂ₗ * ∑ₗ₌₁ᴺ w₁ₗ)
+
+# A weight is assigned to each i, and the w₁'s are normalized to probabilities.
+# Then, a subset of the i's, denoted I′, is selected for re-weighting by a quantity
+# which is undefined for I ∖ I′.
+# I = {1,…,N}
+# J₁ = {i: 𝐰₁ᵢ = 0}    I₁′ = {i: 𝐰₁ᵢ ≠ 0} = I ∖ J₁
+# J₂ = {i: 𝐰₂ᵢ = 0}    I₂′ = {i: 𝐰₂ᵢ ≠ 0} = I ∖ J₂
+# 𝐰₁ ∈ ℝᴺ : the initial weights
+# 𝐰₂ ∈ ℝᴺ : the quantity which is undefined for J₂ = I ∖ I₂′; undefined shall be encoded
+# by a value of zero in 𝐰₂.
+# pᵢ = 𝐰₁ᵢ / ∑ₗ₌₁ᴺ 𝐰₁ₗ, i ∈ I ∖ I₂′
+# mᵏⁿᵒʷⁿ = ∑ᵢ pᵢ, i ∈ I ∖ I₂′
+# mᵘⁿᵈᵉᶠⁱⁿᵉᵈ = 1 - mᵏⁿᵒʷⁿ = (∑ᵢ 𝐰₁ᵢ, i ∈ I₂′) / ∑ₗ₌₁ᴺ 𝐰₁ₗ
+# pᵢ = mᵘⁿᵈᵉᶠⁱⁿᵉᵈ * 𝐰₂ᵢ / ∑ₗ₌₁ᴺ 𝐰₂ₗ, i ∈ I₂′
+# In other words,
+# pᵢ = (𝐰₂ᵢ * ∑ₗ 𝐰₁ₗ, l ∈ I₂′) / (∑ₗ₌₁ᴺ 𝐰₂ₗ * ∑ₗ₌₁ᴺ 𝐰₁ₗ)    i ∈ I₂′
+## As cases, for clarity
+# pᵢ = 𝐰₁ᵢ / ∑ₗ₌₁ᴺ 𝐰₁ₗ                                      i ∈ I ∖ I₂′
+# pᵢ = (𝐰₂ᵢ * ∑ₗ 𝐰₁ₗ, l ∈ I₂′) / (∑ₗ₌₁ᴺ 𝐰₂ₗ * ∑ₗ₌₁ᴺ 𝐰₁ₗ)    i ∈ I₂′
+# general, but must be protected against 𝐰₁ = ̲0 and/or 𝐰₂ = ̲0, which cause /0 error.
+# Essentially, if
+#     s₁ = ∑ₗ₌₁ᴺ 𝐰₁ₗ
+#     s₂ = ∑ₗ₌₁ᴺ 𝐰₂ₗ
+# and if s₁ = 0, then s₁ must be set equal to 1 to keep the terms defined.
+# The same argument applies to s₂.
 
 function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
     s₁′ = zero(T)
