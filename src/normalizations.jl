@@ -629,6 +629,8 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:A
 # of the algorithm clearly implies that if 𝐰₁ = ̲0, then everything that follows
 # involves division by 0.
 
+# _c1c2(::Type{T}, s₁′, s₁, s₂) where {T} = convert(T, inv(s₁)), convert(T, s₁′ / (s₁ * s₂))
+
 """
     algorithm4!(𝐰₁::Vector{T}, 𝐰₂::Vector{<:Real}) where {T<:Real}
 
@@ -652,6 +654,7 @@ function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:Real, U<:Real}
     c₁ = inv(s₁)
     c₂ = s₁′ / (s₁ * s₂)
     # Unlike below, the potential instability is unavoidable here.
+    # c₁, c₂ = _c1c2(T, s₁′, s₁, s₂)
     @inbounds @simd for i ∈ eachindex(w₁, w₂)
         w₁ᵢ = w₁[i]
         w₂ᵢ = w₂[i]

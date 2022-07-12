@@ -614,7 +614,7 @@ end
     # Checks and corresponding benchmarks. Use @code_warntype and inspect the type of
     # p[i] = w₂ᵢ == zero(U) ? c₁ * w₁ᵢ : c₂ * w₂ᵢ
     # _v2! : c₁ = one(S)/ s₁; c₂ = s₁′ * c₁ / s₂
-    # #### 2-arg
+    #### 2-arg
     # 𝑤₁ = Rational.(w₁)
     # 𝑤₂ = Rational.(w₂)
     # 𝐰₁ = Float64.(w₁)
@@ -625,10 +625,21 @@ end
     # # c₁::Rational{Int}, c₂::Float64
     # @code_warntype algorithm4!(pᵣ, 𝐰₁)
 
+    # @code_warntype algorithm4_v2!(p, w₁)
+    # @code_warntype algorithm4_v2!(p, 𝑤₁)
+    # @code_warntype algorithm4_v2!(pᵣ, w₁)
+    # # c₁::Rational{Int}, c₂::Float64
+    # @code_warntype algorithm4_v2!(pᵣ, 𝐰₁)
+
     # @benchmark algorithm4!(p, w₁)
     # @benchmark algorithm4!(p, 𝑤₁)
     # @benchmark algorithm4!(pᵣ, w₁)
     # @benchmark algorithm4!(pᵣ, 𝐰₁)
+
+    # @benchmark algorithm4_v2!(p, w₁)
+    # @benchmark algorithm4_v2!(p, 𝑤₁)
+    # @benchmark algorithm4_v2!(pᵣ, w₁)
+    # @benchmark algorithm4_v2!(pᵣ, 𝐰₁)
     # #### 3-arg
     # @code_warntype algorithm4!(p, w₁, w₂)
     # @code_warntype algorithm4!(p, 𝑤₁, w₂)
