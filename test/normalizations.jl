@@ -194,6 +194,40 @@ end
             end
         end
     end
+
+    @testset "algorithm 3, type handling" begin
+        p = [5/9, 1/9, 3/9, 0, 0]
+        p2 = [5//9, 1//9, 3//9, 0, 0]
+        # conversions should work and be type stable throughout
+        @inferred algorithm3!(p, 0.5)
+        @inferred algorithm3!(p2, 1)
+        # while Integer <: Real, it clearly cannot be normalized in a meaningful manner
+        p3 = [5, 1, 3, 0, 0]
+        @test_throws InexactError algorithm3!(p3, 0)
+        @test_throws InexactError algorithm3!(p3, 1)
+        @test_throws InexactError algorithm3!(p3, 999)
+        #
+        w = [5/9, 1/9, 3/9, 0, 0]
+        w2 = [5//9, 1//9, 3//9, 0, 0]
+        w3 = [5, 1, 3, 0, 0]
+        p = [5/9, 1/9, 3/9, 0, 0]
+        p2 = [5//9, 1//9, 3//9, 0, 0]
+        p3 = [5, 1, 3, 0, 0]
+        @inferred algorithm3!(p, w, 0.5)
+        @inferred algorithm3!(p, w3, 0.5)
+        @inferred algorithm3!(p2, w2, 0.5)
+        @inferred algorithm3!(p2, w2, 1//2)
+
+        @test_throws InexactError algorithm3!(p3, w, 1)
+        @test_throws InexactError algorithm3!(p3, w3, 1)
+        @test_throws InexactError algorithm3!(p3, w2, 1)
+        @test_throws InexactError algorithm3!(p3, w2, 1)
+
+        for u ∈ (1//2, 0.5, 1, 0)
+            @inferred algorithm3(w, u)
+            @inferred algorithm3(w2, u)
+        end
+    end
 end
 
 
