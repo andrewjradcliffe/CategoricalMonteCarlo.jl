@@ -18,8 +18,8 @@
     I2 = [1, 2]
     for T ∈ (Float16, Float32, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128})
         𝑤 = T.(w)
-        @test algorithm2_1(I1, 𝑤) ≈ T[1]
-        @test algorithm2_1(I2, 𝑤) ≈ 𝑤[I2] ./ sum(𝑤[I2])
+        @test @inferred algorithm2_1(I1, 𝑤) ≈ T[1]
+        @test @inferred algorithm2_1(I2, 𝑤) ≈ 𝑤[I2] ./ sum(𝑤[I2])
     end
 
     # Aberrant behavior
@@ -560,6 +560,22 @@ end
     @test isequal(algorithm4(zeros(3), zeros(3)), [NaN, NaN, NaN])
     @test !isequal(algorithm4(rand(3), zeros(3)), [NaN, NaN, NaN])
     @test isequal(algorithm4(zeros(3), rand(3)), [NaN, NaN, NaN])
+end
+@testset "algorithm4, type handling" begin
+    w₁ = [1, 1, 1, 1, 0]
+    w₂ = [2, 1, 3, 0, 5]
+    p = [3/22, 3/44, 9/44, 1/4, 15/44]
+    pᵣ = [3//22, 3//44, 9//44, 1//4, 15//44]
+    @test algorithm4(w₁, w₂) ≈ p
+    for T ∈ (Float32, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128})
+        𝑤₁ = T.(w₁)
+        @test algorithm4(𝑤₁, w₂) ≈ p rtol=∛(eps())
+        𝑤₂ = T.(w₂)
+        @test algorithm4(w₁, 𝑤₂) ≈ p rtol=∛(eps())
+        𝑝 = @inferred algorithm4(𝑤₁, 𝑤₂)
+        @test eltype(𝑝) === T
+        @test 𝑝 ≈ p rtol=∛(eps())
+    end
 end
 @testset "algorithm3, algorithm4, application order effects" begin
     # 3 -> 4, w₁ ∌ 0, w₂ ∋ 0
