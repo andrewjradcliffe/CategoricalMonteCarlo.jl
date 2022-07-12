@@ -129,7 +129,9 @@ function unsafe_algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where 
         s += w̃
         p[i] = w̃
     end
-    c = inv(s)
+    # c = inv(s)
+    # Guarantees type stability at negligible expense compared to what is gained
+    c = one(T) / s
     @inbounds @simd for i ∈ eachindex(p)
         p[i] *= c
     end
