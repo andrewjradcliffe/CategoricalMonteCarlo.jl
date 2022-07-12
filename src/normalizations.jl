@@ -6,6 +6,7 @@
 ############################################################################################
 
 _typeofinv(x) = typeof(inv(x))
+_typeofinv(::Type{T}) where {T} = typeof(inv(one(T)))
 
 """
     normalize1!(A::AbstractArray{<:Real})
@@ -81,7 +82,7 @@ It is assumed that `A[i] ≥ 0` ∀i.
 
 See also: [`normalize1!`](@ref)
 """
-normalize1(A::AbstractArray{<:Real}) = normalize1!(similar(A, _typeofinv(first(A))), A)
+normalize1(A::AbstractArray{T}) where {T<:Real} = normalize1!(similar(A, _typeofinv(T)), A)
 
 function vnormalize1!(A::AbstractArray{T}) where {T<:Base.IEEEFloat}
     s = zero(T)
@@ -107,7 +108,7 @@ function normalize1!(B::AbstractArray{T}, A::AbstractArray{T}) where {T<:Base.IE
     B
 end
 
-normalize1(A::AbstractArray{<:Base.IEEEFloat}) = normalize1!(similar(A, _typeofinv(first(A))), A)
+normalize1(A::AbstractArray{<:Base.IEEEFloat}) = normalize1!(similar(A), A)
 
 ################
 # @noinline function _check_algorithm2_1(I::Vector{Int}, x)
@@ -194,7 +195,7 @@ julia> algorithm2_1(I, [5, 4, 3, 2, Inf])
    0.0
 ```
 """
-algorithm2_1(I::Vector{Int}, w::Vector{<:Real}) = algorithm2_1!(similar(I, _typeofinv(first(w))), I, w)
+algorithm2_1(I::Vector{Int}, w::Vector{T}) where {T<:Real} = algorithm2_1!(similar(I, _typeofinv(T)), I, w)
 
 #### Algorithm 2.2
 # I₁ ∈ ℕᴺ, I₂ ∈ ℕᴺ, …, Iₘ ∈ ℕᴺ; 𝐰₁ ∈ ℝᴰ¹, 𝐰₂ ∈ ℝᴰ², …, 𝐰ₘ ∈ ℝᴰᵐ
