@@ -618,6 +618,15 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:A
 # of the algorithm clearly implies that if 𝐰₁ = ̲0, then everything that follows
 # involves division by 0.
 
+"""
+    algorithm4!(𝐰₁::Vector{T}, 𝐰₂::Vector{S}) where {T<:Real, S<:Real}
+
+Fill `𝐰₁` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`; refer to the
+respective documentation for a description of `algorithm4`.
+Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
+
+See also: [`algorithm4`](@ref)
+"""
 function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
     s₁′ = zero(T)
     s₁ = zero(T)
@@ -641,7 +650,16 @@ function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, 
     w₁
 end
 
-function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:AbstractFloat, T<:Real, U<:Real}
+"""
+    algorithm4!(p::Vector{T}, 𝐰₁::Vector{S}, 𝐰₂::Vector{U}) where {T<:Real, S<:Real, U<:Real}
+
+Fill `p` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`; refer to the
+respective documentation for a description of `algorithm4`.
+Note that `T` must be a type which is able to hold the result of `inv(one(promote_type(S, U)))`.
+
+See also: [`algorithm4`](@ref)
+"""
+function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:Real, T<:Real, U<:Real}
     s₁′ = zero(T)
     s₁ = zero(T)
     s₂ = zero(U)
@@ -698,6 +716,8 @@ take a vector of weights, `𝐰₁` and re-weight some subset (I₂′) of those
 a second set of weights, `𝐰₂`, while preserving the proportion of probability mass
 derived from `𝐰₁`. That is, given `p = algorithm4(𝐰₁, 𝐰₂)`, the following relationship
 is preserved: `sum(p[J₂]) ≈ sum(𝐰₁[J₂]) / sum(𝐰₁[I₁′])`.
+
+See also: [`algorithm4!`](@ref)
 
 # Examples
 ```jldoctest
