@@ -364,7 +364,7 @@ algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} whe
 ################
 
 #### Algorithm 3. -- FillMass
-# 𝐰 ∈ ℝᴺ, u ∈ R, 0 ≤ u ≤ 1
+# 𝐰 ∈ ℝᴺ, u ∈ ℝ, 0 ≤ u ≤ 1
 # -> ω ∈ ℝᴺ, J = {i: wᵢ = 0}
 # ωᵢ =
 #     Case 1: if J ≠ ∅
@@ -376,8 +376,8 @@ algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} whe
 ## Alternative using ratio
 # r ∈ ℝ
 # r = u / (1 - u)    ⟹    u = r / (1 + r)
-_r(u) = u / (1 - u)
-_u(r) = r / (1 + r)
+# _r(u::T) where {T<:Real} = u / (one(T) - u)
+_u(r::T) where {T<:Real} = r / (one(T) + r)
 
 _check_u01(u::S) where {S<:Real} = (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: $(zero(S)) ≤ u ≤ $(one(S))")))
 
@@ -481,7 +481,7 @@ are equal to zero. If all values of `w` are zero, `p` is filled with `1 / length
 
 Mathematically, given:
 
-𝐰 ∈ ℝᴺ, u ∈ R, 0 ≤ u ≤ 1, J = {i : 𝐰ᵢ = 0}
+𝐰 ∈ ℝᴺ, u ∈ ℝ, 0 ≤ u ≤ 1, J = {i : 𝐰ᵢ = 0}
 
 ```
 pᵢ =
@@ -496,6 +496,75 @@ See also: [`algorithm3!`](@ref)
 """
 algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:Real} =
     (_check_u01(u); algorithm3!(similar(p, _typeofinv(T)), p, u))
+
+#### Algorithm 3, in terms of ratio
+
+"""
+    algorithm3_ratio!(p::Vector{T}, r::Real) where {T<:Real}
+
+Normalize `p` to probabilities, then spread the probability mass `u = r / (1 + r)`
+across the 0 or more elements of `p` such that the ratio of (inititally) zero elements
+to non-zero elements is equal to `r`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
+
+See also: [`algorithm3_ratio`](@ref), [`algorithm3!`](@ref)
+"""
+algorithm3_ratio!(p, r) = algorithm3!(p, _u(r))
+
+"""
+    algorithm3_ratio!(p::Vector{T}, w::Vector{<:Real}, r::Real) where {T<:Real}
+
+Normalize `w` to probabilities, storing the result in `p`, then spread the
+probability mass `u = r / (1 + r)` across the 0 or more elements of `p` such that
+the ratio of (inititally) zero elements to non-zero elements is equal to `r`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
+"""
+algorithm3_ratio!(p, w, r) = algorithm3!(p, w, _u(r))
+
+"""
+    algorithm3_ratio(w::Vector{<:Real}, r::Real)
+
+Return a vector of probabilities by normalizing `w` to probabilities, then
+spread the probability mass `u = r / (1 + r)` across the 0 or more elements of `w`
+such that the ratio of (inititally) zero elements to non-zero elements is equal to `r`.
+
+Mathematically, given:
+
+𝐰 ∈ ℝᴺ, r ∈ ℝ₊, 0 ≤ r < Inf, J = {i : 𝐰ᵢ = 0}
+
+```
+pᵢ =
+    Case 1: if J ≠ ∅
+            (r / (1+r)) / |J|                     if i ∈ J
+            (1 / (1+r)) * 𝐰ᵢ / ∑ᵢ₌₁ᴺ 𝐰ᵢ           otherwise
+    Case 2: if J = {1,…,N}
+            1/N
+```
+
+See also: [`algorithm3_ratio!`](@ref), [`algorithm3`](@ref)
+
+# Examples
+```jldoctest
+julia> w = [1, 0, 3, 0, 5]; r = 2;
+
+julia> algorithm3_ratio(w, r)
+5-element Vector{Float64}:
+ 0.03703703703703704
+ 0.3333333333333333
+ 0.11111111111111113
+ 0.3333333333333333
+ 0.1851851851851852
+
+julia> algorithm3(w, r / (1 + r))    # Note equivalence
+5-element Vector{Float64}:
+ 0.03703703703703704
+ 0.3333333333333333
+ 0.11111111111111113
+ 0.3333333333333333
+ 0.1851851851851852
+```
+"""
+algorithm3_ratio(p, r) = algorithm3(p, _u(r))
 
 ################
 
