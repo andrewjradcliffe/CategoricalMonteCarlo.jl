@@ -630,15 +630,15 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:A
 # involves division by 0.
 
 """
-    algorithm4!(𝐰₁::Vector{T}, 𝐰₂::Vector{S}) where {T<:Real, S<:Real}
+    algorithm4!(𝐰₁::Vector{T}, 𝐰₂::Vector{<:Real}) where {T<:Real}
 
 Fill `𝐰₁` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`; refer to the
 respective documentation for a description of `algorithm4`.
-Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm4`](@ref)
 """
-function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
+function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:Real, U<:Real}
     s₁′ = zero(T)
     s₁ = zero(T)
     s₂ = zero(U)
@@ -649,10 +649,9 @@ function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, 
         s₁ += w₁ᵢ
         s₂ += w₂ᵢ
     end
-    # c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
-    # c₂ = s₁′ * c₁ / s₂
     c₁ = inv(s₁)
     c₂ = s₁′ / (s₁ * s₂)
+    # Unlike below, the potential instability is unavoidable here.
     @inbounds @simd for i ∈ eachindex(w₁, w₂)
         w₁ᵢ = w₁[i]
         w₂ᵢ = w₂[i]
@@ -662,11 +661,11 @@ function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, 
 end
 
 """
-    algorithm4!(p::Vector{T}, 𝐰₁::Vector{S}, 𝐰₂::Vector{U}) where {T<:Real, S<:Real, U<:Real}
+    algorithm4!(p::Vector{T}, 𝐰₁::Vector{<:Real}, 𝐰₂::Vector{<:Real}) where {T<:Real}
 
 Fill `p` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`; refer to the
 respective documentation for a description of `algorithm4`.
-Note that `T` must be a type which is able to hold the result of `inv(one(promote_type(S, U)))`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm4`](@ref)
 """
@@ -681,15 +680,14 @@ function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:R
         s₁ += w₁ᵢ
         s₂ += w₂ᵢ
     end
-    # This covers an odd case, wherein w₁ consists of all zeros.
-    # Naturally, there is not a clear definition for what the resultant probabilities
-    # should be -- all zero, or 1/length(w₁)? this leans in favor of all zero.
-    # s₁ = s₁ == zero(T) ? one(T) : s₁
-    c₁ = inv(s₁)
-    c₂ = s₁′ / (s₁ * s₂)
-    # c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
-    # c₂ = s₁′ * c₁ / s₂
-    @inbounds @simd for i ∈ eachindex(w₁, w₂)
+    # c₁ = inv(s₁)
+    # c₂ = s₁′ / (s₁ * s₂)
+    # Equivalent, but improves type stability at expensive of inv(::Rational) not being used.
+    # Note, however, inv(::Rational) occurs at most once, whereas the instability in the loop
+    # incurs overhead length(p) times.
+    c₁ = one(S) / s₁
+    c₂ = s₁′ * c₁ / s₂
+    @inbounds @simd for i ∈ eachindex(p, w₁, w₂)
         w₁ᵢ = w₁[i]
         w₂ᵢ = w₂[i]
         p[i] = w₂ᵢ == zero(U) ? c₁ * w₁ᵢ : c₂ * w₂ᵢ
