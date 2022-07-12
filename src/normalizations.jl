@@ -667,8 +667,6 @@ function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:A
     end
     p
 end
-# the quantity which is undefined for J₂ = I ∖ I₂′; undefined shall be encoded
-#     by a value of zero in 𝐰₂.
 
 """
     algorithm4(𝐰₁::Vector{<:Real}, 𝐰₂::Vector{<:Real})
