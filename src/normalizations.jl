@@ -373,12 +373,22 @@ algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} whe
 #     Case 2: if J = 1,…,N
 #             1/N
 
+## Alternative using ratio
+# r ∈ ℝ
+# r = u / (1 - u)    ⟹    u = r / (1 + r)
+_r(u) = u / (1 - u)
+_u(r) = r / (1 + r)
+
+_check_u01(u::S) where {S<:Real} = (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: $(zero(S)) ≤ u ≤ $(one(S))")))
+
 """
-    algorithm3!(p::Vector{S}, u::S) where {S<:AbstractFloat}
+    algorithm3!(p::Vector{T}, u::Real) where {T<:Real}
 
 Normalize `p` to probabilities, spreading probability mass `u` across the
-0 or more elements which are equal to zero. It is assumed (note: not checked!)
+0 or more elements of `p` which are equal to zero. It is assumed (note: not checked!)
 that `0 ≤ u ≤ 1`. If all values of `p` are equal to zero, `p` is filled with `1 / length(p)`.
+Refer to the respective documentation for a description of `algorithm3`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm3`](@ref)
 
@@ -416,30 +426,58 @@ julia> algorithm3!([1.0, 2.0, 3.0], 0.5)           # in absence of 0's, just nor
  0.5
 ```
 """
-function algorithm3!(p::Vector{S}, u::S) where {S<:AbstractFloat}
-    s = zero(S)
+function algorithm3!(p::Vector{T}, u::T) where {T<:Real}
+    s = zero(T)
     z = 0
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         s += pᵢ
-        z += pᵢ == zero(S)
+        z += pᵢ == zero(T)
     end
-    c = z == 0 ? inv(s) : (one(S) - u) / s
-    u′ = z == length(p) ? inv(z) : u / z
+    c = z == 0 ? inv(s) : (one(T) - u) / s
+    u′ = z == length(p) ? one(T) / z : u / z
+    @inbounds @simd for i ∈ eachindex(p)
+        pᵢ = p[i]
+        p[i] = pᵢ == zero(T) ? u′ : pᵢ * c
+    end
+    p
+end
+algorithm3!(p::Vector{T}, u::S) where {T<:Real, S<:Real} = algorithm3!(p, convert(T, u))
+
+"""
+    algorithm3!(p::Vector{T}, w::Vector{<:Real}, u::Real) where {T<:Real}
+
+Normalize `w` to probabilities, storing the result in `p`, spreading probability
+mass `u` across the 0 or more elements of `w` which are equal to zero. It is assumed
+(note: not checked!) that `0 ≤ u ≤ 1`. If all values of `w` are zero,
+`p` is filled with `1 / length(p)`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
+"""
+function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
+    s = zero(T)
+    z = 0
+    @inbounds @simd for i ∈ eachindex(p, w)
+        w̃ = w[i]
+        s += w̃
+        p[i] = w̃
+        z += w̃ == zero(T)
+    end
+    c = z == 0 ? one(S) / s : (one(S) - u) / s
+    u′ = z == length(p) ? one(S) / z : u / z
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
     end
     p
 end
+algorithm3!(p::Vector{S}, w::Vector{T}, u::U) where {S<:Real, T<:Real, U<:Real} = algorithm3!(p, w, convert(S, u))
 
 """
-    algorithm3!(p::Vector{S}, w::Vector{<:Real}, u::S) where {S<:AbstractFloat}
+    algorithm3(w::Vector{<:Real}, u::Real)
 
-Normalize `w` to probabilities, storing the result in `p`, spreading probability
-mass `u` across the 0 or more elements which are equal to zero. It is assumed
-(note: not checked!) that `0 ≤ u ≤ 1`. If all values of `w` are zero,
-`p` is filled with `1 / length(p)`.
+Return a vector of probabilities by normalizing `w` to probabilities, then
+spreading the probability mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which
+are equal to zero. If all values of `w` are zero, `p` is filled with `1 / length(p)`.
 
 Mathematically, given:
 
@@ -453,37 +491,11 @@ pᵢ =
     Case 2: if J = {1,…,N}
             1/N
 ```
-"""
-function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
-    s = zero(T)
-    z = 0
-    @inbounds @simd for i ∈ eachindex(p, w)
-        w̃ = w[i]
-        s += w̃
-        p[i] = w̃
-        z += w̃ == zero(T)
-    end
-    c = z == 0 ? inv(s) : (one(S) - u) / s
-    u′ = z == length(p) ? inv(z) : u / z
-    @inbounds @simd for i ∈ eachindex(p)
-        pᵢ = p[i]
-        p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
-    end
-    p
-end
-
-"""
-    algorithm3(w::Vector{<:Real}, u::AbstractFloat)
-
-Normalize `w` to probabilities, spreading the probability mass `0 ≤ u ≤ 1` across
-the 0 or more elements which are equal to zero. If all values of `w` are zero,
-`p` is filled with `1 / length(p)`.
 
 See also: [`algorithm3!`](@ref)
 """
-algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: 0 ≤ u ≤ 1"));
-     algorithm3!(similar(p, promote_type(T, S)), p, u))
+algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:Real} =
+    (_check_u01(u); algorithm3!(similar(p, _typeofinv(T)), p, u))
 
 ################
 
@@ -569,8 +581,7 @@ julia> algorithm3(algorithm2_1(I, w), u)
 ```
 """
 algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: 0 ≤ u ≤ 1"));
-     algorithm2_1_algorithm3!(similar(I, promote_type(T, S, Float64)), I, w, u))
+    (_check_u01(u); algorithm2_1_algorithm3!(similar(I, promote_type(T, S, Float64)), I, w, u))
 
 ################
 # Algorithm 4
