@@ -610,6 +610,87 @@ end
         @test eltype(𝑝) === T
         @test 𝑝 ≈ p rtol=∛(eps())
     end
+    ################
+    # Checks and corresponding benchmarks. Use @code_warntype and inspect the type of
+    # p[i] = w₂ᵢ == zero(U) ? c₁ * w₁ᵢ : c₂ * w₂ᵢ
+    # _v2! : c₁ = one(S)/ s₁; c₂ = s₁′ * c₁ / s₂
+    # #### 2-arg
+    # 𝑤₁ = Rational.(w₁)
+    # 𝑤₂ = Rational.(w₂)
+    # 𝐰₁ = Float64.(w₁)
+    # 𝐰₂ = Float64.(w₂)
+    # @code_warntype algorithm4!(p, w₁)
+    # @code_warntype algorithm4!(p, 𝑤₁)
+    # @code_warntype algorithm4!(pᵣ, w₁)
+    # # c₁::Rational{Int}, c₂::Float64
+    # @code_warntype algorithm4!(pᵣ, 𝐰₁)
+
+    # @benchmark algorithm4!(p, w₁)
+    # @benchmark algorithm4!(p, 𝑤₁)
+    # @benchmark algorithm4!(pᵣ, w₁)
+    # @benchmark algorithm4!(pᵣ, 𝐰₁)
+    # #### 3-arg
+    # @code_warntype algorithm4!(p, w₁, w₂)
+    # @code_warntype algorithm4!(p, 𝑤₁, w₂)
+    # # s₁::Float64, s₂::Rational{Int}
+    # @code_warntype algorithm4!(p, w₁, 𝑤₂)
+    # #
+    # @code_warntype algorithm4!(pᵣ, w₁, w₂)
+    # @code_warntype algorithm4_v2!(pᵣ, w₁, w₂)
+    # #
+    # @code_warntype algorithm4!(pᵣ, 𝑤₁, w₂)
+    # @code_warntype algorithm4_v2!(pᵣ, 𝑤₁, w₂)
+    # # c₁::Float64, c₂::Rational{Int}
+    # @code_warntype algorithm4!(pᵣ, w₁, 𝑤₂)
+    # @code_warntype algorithm4_v2!(pᵣ, w₁, 𝑤₂)
+    # #
+    # @benchmark algorithm4!($pᵣ, $𝑤₁, $w₂)
+    # @benchmark algorithm4_v2!($pᵣ, $𝑤₁, $w₂)
+    # #
+    # @benchmark algorithm4!($pᵣ, $w₁, $𝑤₂)
+    # @benchmark algorithm4_v2!($pᵣ, $w₁, $𝑤₂)
+    # #
+    # @benchmark algorithm4!($pᵣ, $𝑤₁, $𝑤₂)
+    # @benchmark algorithm4_v2!($pᵣ, $𝑤₁, $𝑤₂)
+    # #
+    # @benchmark algorithm4!($p, $𝑤₁, $w₂)
+    # @benchmark algorithm4_v2!($p, $𝑤₁, $w₂)
+    # #
+    # @benchmark algorithm4!($p, $w₁, $𝑤₂)
+    # @benchmark algorithm4_v2!($p, $w₁, $𝑤₂)
+    # #
+    # @benchmark algorithm4!($p, $𝑤₁, $𝑤₂)
+    # @benchmark algorithm4_v2!($p, $𝑤₁, $𝑤₂)
+    # ####
+    # @code_warntype algorithm4!(p, 𝐰₁, 𝑤₂)
+    # #
+    # @code_warntype algorithm4!(pᵣ, 𝐰₁, 𝐰₂)
+    # @code_warntype algorithm4_v2!(pᵣ, 𝐰₁, 𝐰₂)
+    # #
+    # @code_warntype algorithm4!(pᵣ, 𝑤₁, 𝐰₂)
+    # @code_warntype algorithm4_v2!(pᵣ, 𝑤₁, 𝐰₂)
+    # # s₁::Float64, s₂::Rational{Int}
+    # @code_warntype algorithm4!(pᵣ, 𝐰₁, 𝑤₂)
+    # @code_warntype algorithm4_v2!(pᵣ, 𝐰₁, 𝑤₂)
+    # #
+    # @benchmark algorithm4!($pᵣ, $𝑤₁, $𝐰₂)
+    # @benchmark algorithm4_v2!($pᵣ, $𝑤₁, $𝐰₂)
+    # #
+    # @benchmark algorithm4!($pᵣ, $𝐰₁, $𝑤₂)
+    # @benchmark algorithm4_v2!($pᵣ, $𝐰₁, $𝑤₂)
+    # #
+    # @benchmark algorithm4!($pᵣ, $𝐰₁, $𝐰₂)
+    # @benchmark algorithm4_v2!($pᵣ, $𝐰₁, $𝐰₂)
+    # #
+    # @benchmark algorithm4!($p, $𝑤₁, $𝐰₂)
+    # @benchmark algorithm4_v2!($p, $𝑤₁, $𝐰₂)
+    # #
+    # @benchmark algorithm4!($p, $𝐰₁, $𝑤₂)
+    # @benchmark algorithm4_v2!($p, $𝐰₁, $𝑤₂)
+    # #
+    # @benchmark algorithm4!($p, $𝐰₁, $𝐰₂)
+    # @benchmark algorithm4_v2!($p, $𝐰₁, $𝐰₂)
+    # #
 end
 @testset "algorithm3, algorithm4, application order effects" begin
     # 3 -> 4, w₁ ∌ 0, w₂ ∋ 0
