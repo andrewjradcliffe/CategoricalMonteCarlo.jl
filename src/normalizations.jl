@@ -390,40 +390,23 @@ that `0 ≤ u ≤ 1`. If all values of `p` are equal to zero, `p` is filled with
 Refer to the respective documentation for a description of `algorithm3`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
-See also: [`algorithm3`](@ref)
+See also: [`algorithm3`](@ref), [`algorithm3_ratio!`](@ref)
 
 # Examples
-```jldoctest
-julia> algorithm3!([0.0, 10.0, 5.0, 0.0], 0.5)
-4-element Vector{Float64}:
- 0.25
- 0.3333333333333333
- 0.16666666666666666
- 0.25
+```
+julia> algorithm3!(Rational{Int}[0, 10, 5, 0], 0.5)
+4-element Vector{Rational{Int64}}:
+ 1//4
+ 1//3
+ 1//6
+ 1//4
 
-julia> algorithm3!([0.0, 10.0, 5.0, 0.0], 1.5)     # not desirable!
-4-element Vector{Float64}:
-  0.75
- -0.3333333333333333
- -0.16666666666666666
-  0.75
-
-julia> algorithm3!([0.0, 0.0, 0.0], 0.5)           # fill with 1 / length
-3-element Vector{Float64}:
- 0.3333333333333333
- 0.3333333333333333
- 0.3333333333333333
-
-julia> algorithm3!([0.0, 0.0], 0.0)                # fill with 1 / length, even if zero mass
-2-element Vector{Float64}:
- 0.5
- 0.5
-
-julia> algorithm3!([1.0, 2.0, 3.0], 0.5)           # in absence of 0's, just normalize
-3-element Vector{Float64}:
- 0.16666666666666666
- 0.3333333333333333
- 0.5
+julia> algorithm3!(Rational{Int}[0, 10, 5, 0], 1.5)     # not desirable!
+4-element Vector{Rational{Int64}}:
+  3//4
+ -1//3
+ -1//6
+  3//4
 ```
 """
 function algorithm3!(p::Vector{T}, u::T) where {T<:Real}
@@ -492,7 +475,34 @@ pᵢ =
             1/N
 ```
 
-See also: [`algorithm3!`](@ref)
+See also: [`algorithm3!`](@ref), [`algorithm3_ratio`](@ref)
+
+# Examples
+```jldoctest
+julia> algorithm3([0, 10, 5, 0], 0.5)
+4-element Vector{Float64}:
+ 0.25
+ 0.3333333333333333
+ 0.16666666666666666
+ 0.25
+
+julia> algorithm3([0, 0, 0], 0.5)           # fill with 1 / length
+3-element Vector{Float64}:
+ 0.3333333333333333
+ 0.3333333333333333
+ 0.3333333333333333
+
+julia> algorithm3([0//1, 0//1], 0.0)        # fill with 1 / length, even if zero mass
+2-element Vector{Rational{Int64}}:
+ 1//2
+ 1//2
+
+julia> algorithm3([1, 2, 3], 0.9)           # in absence of 0's, just normalize
+3-element Vector{Float64}:
+ 0.16666666666666666
+ 0.3333333333333333
+ 0.5
+```
 """
 algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:Real} =
     (_check_u01(u); algorithm3!(similar(p, _typeofinv(T)), p, u))
