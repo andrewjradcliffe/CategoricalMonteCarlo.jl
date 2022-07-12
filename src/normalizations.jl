@@ -612,6 +612,11 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:A
 #     s₂ = ∑ₗ₌₁ᴺ 𝐰₂ₗ
 # and if s₁ = 0, then s₁ must be set equal to 1 to keep the terms defined.
 # The same argument applies to s₂.
+# An alternative line of reasoning suggests that it is preferable to be
+# mathematically consistent and let /0 cause the expected behavior (NaNs).
+# Mathematical consistency is much easier to reason about, as the definition
+# of the algorithm clearly implies that if 𝐰₁ = ̲0, then everything that follows
+# involves division by 0.
 
 function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, U<:Real}
     s₁′ = zero(T)
@@ -624,8 +629,10 @@ function algorithm4!(w₁::Vector{T}, w₂::Vector{U}) where {T<:AbstractFloat, 
         s₁ += w₁ᵢ
         s₂ += w₂ᵢ
     end
-    c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
-    c₂ = s₁′ * c₁ / s₂
+    # c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
+    # c₂ = s₁′ * c₁ / s₂
+    c₁ = inv(s₁)
+    c₂ = s₁′ / (s₁ * s₂)
     @inbounds @simd for i ∈ eachindex(w₁, w₂)
         w₁ᵢ = w₁[i]
         w₂ᵢ = w₂[i]
@@ -649,10 +656,10 @@ function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:A
     # Naturally, there is not a clear definition for what the resultant probabilities
     # should be -- all zero, or 1/length(w₁)? this leans in favor of all zero.
     # s₁ = s₁ == zero(T) ? one(T) : s₁
-    # c₁ = inv(s₁)
-    # c₂ = s₁′ / (s₁ * s₂)
-    c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
-    c₂ = s₁′ * c₁ / s₂
+    c₁ = inv(s₁)
+    c₂ = s₁′ / (s₁ * s₂)
+    # c₁ = s₁ == zero(T) ? one(T) : inv(s₁)
+    # c₂ = s₁′ * c₁ / s₂
     @inbounds @simd for i ∈ eachindex(w₁, w₂)
         w₁ᵢ = w₁[i]
         w₂ᵢ = w₂[i]
