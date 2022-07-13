@@ -111,7 +111,7 @@
         @test @inferred algorithm2_1!(p, I, w2) ≈ p3
         @test @inferred algorithm2_1!(p, I, w3) ≈ p3
         #
-        for T ∈ (Float16, Float32, Float64, BigFloat, Int8, Int16, Int32, Int64, BigInt, Rational{Int8}, Rational{Int16}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
+        for T ∈ (Float16, Float32, Float64, BigFloat, Int8, Int16, Int32, Int64, BigInt, Rational{Int8}, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
             𝑤 = T.(w3)
             p′ = @inferred algorithm2_1(I, 𝑤)
             @test p′ ≈ p3
@@ -259,7 +259,7 @@ end
         @test_throws InexactError algorithm3!(p3, w2, 1)
         @test_throws InexactError algorithm3!(p3, w2, 1)
         ps = (algorithm3(w3, 1//2), algorithm3(w3, 0.5), algorithm3(w3, 1), algorithm3(w3, 0))
-        for T ∈ (Float16, Float32, Float64, BigFloat, Int8, Int16, Int32, Int64, BigInt, Rational{Int8}, Rational{Int16}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
+        for T ∈ (Float16, Float32, Float64, BigFloat, Int8, Int16, Int32, Int64, BigInt, Rational{Int8}, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
             𝑤 = T.(w3)
             for (i, u) ∈ enumerate((1//2, 0.5, 1, 0))
                 p = @inferred algorithm3(𝑤, u)
