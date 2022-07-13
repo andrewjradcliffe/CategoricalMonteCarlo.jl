@@ -985,3 +985,36 @@ julia> algorithm4(w₁, [2, 0, 3, 0, 0])    # J₂ = [2,4,5] not re-weighted; I�
 ```
 """
 algorithm4(w₁::Vector{T}, w₂::Vector{U}) where {T<:Real, U<:Real} = algorithm4!(similar(w₁, promote_type(_typeofinv(T), _typeofinv(U))), w₁, w₂)
+
+################################################################
+# A type interface?
+abstract type AbstractNormalizer end
+struct Alg1 <: AbstractNormalizer end
+struct Alg2_1 <: AbstractNormalizer end
+struct Alg2_2 <: AbstractNormalizer end
+struct Alg3 <: AbstractNormalizer end
+struct Alg3Ratio <: AbstractNormalizer end
+struct Alg2_1_Alg3 <: AbstractNormalizer end
+struct Alg2_1_Alg3Ratio <: AbstractNormalizer end
+struct Alg4 <: AbstractNormalizer end
+
+retalg(A::T) where {T<:AbstractNormalizer} = retalg(T)
+function retalg(::Type{T}) where {T<:AbstractNormalizer}
+    if T === Alg1
+        return identity
+    elseif T === Alg2_1
+        return algorithm2_1
+    elseif T === Alg2_2
+        return algorithm2_2
+    elseif T === Alg3
+        return algorithm3
+    elseif T === Alg3Ratio
+        return algorithm3_ratio
+    elseif T === Alg2_1_Alg3
+        return algorithm2_1_algorithm3
+    elseif T === Alg2_1_Alg3Ratio
+        return algorithm2_1_algorithm3_ratio
+    elseif T === Alg4
+        return algorithm4
+    end
+end
