@@ -139,10 +139,10 @@ normalize1(A::AbstractArray{<:Base.IEEEFloat}) = normalize1!(similar(A), A)
 # end
 
 """
-    algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
+    algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{<:Real}) where {T<:Real}
 
 Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
-Note that `T` must be a type which is able to hold the result of `inv(one(S))`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm2_1`](@ref)
 """
@@ -216,6 +216,9 @@ algorithm2_1(I::Vector{Int}, w::Vector{T}) where {T<:Real} = algorithm2_1!(simil
 # I₁ ∈ ℕᴺ, I₂ ∈ ℕᴺ, …, Iₘ ∈ ℕᴺ; 𝐰₁ ∈ ℝᴰ¹, 𝐰₂ ∈ ℝᴰ², …, 𝐰ₘ ∈ ℝᴰᵐ
 # -> ω ∈ ℝᴺ, ωᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ᵢ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]]
 
+_typeofprod(ws::NTuple{N, Vector{<:Real}}) where {N} = typeof(mapreduce(first, *, ws))
+_typeofprod(ws::NTuple{N, Vector{T}}) where {N} where {T<:Real} = T
+
 function algorithm2_2_quote(M::Int)
     Is = Expr(:tuple)
     ws = Expr(:tuple)
@@ -238,30 +241,32 @@ function algorithm2_2_quote(M::Int)
         $Is = Is
         $ws = ws
         $bc
-        s = zero(T)
+        # s = zero(T)
+        s = zero(_typeofprod(ws))
         @inbounds @simd ivdep $loop
-        c = inv(s)
+        c = one(S) / s
         @inbounds @simd ivdep for j ∈ eachindex(p)
             p[j] *= c
         end
         return p
     end
 end
-@generated function algorithm2_2!(p, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+@generated function algorithm2_2!(p::Vector{S}, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {M} where {S<:Real}
     algorithm2_2_quote(M)
 end
 
 """
-    algorithm2_2!(p, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+    algorithm2_2!(p::Vector{T}, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {T<:Real, M}
 
 Compute the product of weights selected by the respective index sets `Is`,
 then normalize the resultant weight vector to probabilities, storing the result in `p`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm2_2`](@ref)
 
 # Examples
 ```jldoctest
-julia> Is = ([1, 2, 3], [4, 5, 6], [7, 8, 9]); ws = ([1.0, 2.0, 3.0], fill(0.5, 6), fill(0.1, 9));
+julia> Is = ([1, 2, 3], [4, 5, 6], [7, 8, 9]); ws = ([1,2,3], fill(1/6, 6), fill(1//10, 9));
 
 julia> algorithm2_2!(zeros(3), Is, ws)
 3-element Vector{Float64}:
@@ -273,7 +278,7 @@ julia> algorithm2_2!(zeros(3), Is, ws)
 algorithm2_2!(p, Is::NTuple{1, Vector{Int}}, ws::NTuple{1, Vector{T}}) where {M} where {T<:Real} = algorithm2_1!(p, (@inbounds Is[1]), (@inbounds ws[1]))
 
 """
-    algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real}
+    algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {M}
 
 Compute the product of weights selected by the respective index sets `Is`,
 then normalize the resultant weight vector to probabilities.
@@ -315,7 +320,8 @@ julia> w ./= sum(w)                                        # normalized
  0.5
 ```
 """
-algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{T}}) where {M} where {T<:Real} = algorithm2_2!(Vector{Base.promote_op(inv, T)}(undef, maximum(length, Is)), Is, ws)
+algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {M} =
+    algorithm2_2!(Vector{_typeofinv(_typeofprod(ws))}(undef, maximum(length, Is)), Is, ws)
 
 # function algorithm2_2_weightonly_quote(M::Int)
 #     Is = Expr(:tuple)
