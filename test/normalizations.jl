@@ -105,17 +105,30 @@ end
     @test algorithm3(w, 1.0) == [0.5, 0.0, 0.0, 0.5, 0.0]
     # u not 0 ≤ u ≤ 1
     p = [0.75, -0.2857142857142857, -0.14285714285714285, 0.75, -0.07142857142857142]
-    p′ = algorithm3(w, 1.5)
-    @test p ≈ p′
-    @test sum(p′) ≈ 1.0
+    @test_throws DomainError algorithm3(w, 1.5)
+    @test_throws DomainError algorithm3(w, -0.5)
+    # @test p ≈ p′
+    # @test sum(p′) ≈ 1.0
     # throws where appropriate
     @test_throws DimensionMismatch algorithm3!(p, zeros(6), 0.5)
     @test_throws DimensionMismatch algorithm3!(zeros(6), p, 0.5)
     # zeros behavior
+    p = algorithm3(w, 0.0)
+    @test p == [0.0, 0.5714285714285714, 0.2857142857142857, 0.0, 0.14285714285714285]
+    algorithm3!(p, 1.0)
+    @test p == [0.5, 0.0, 0.0, 0.5, 0.0]
+    algorithm3!(p, 0.0)
+    @test p == [0.5, 0.0, 0.0, 0.5, 0.0]
+    p .= 0
+    algorithm3!(p, 1.0)
+    @test p == fill(0.2, 5)
+    p .= 0
+    algorithm3!(p, 0.0)
+    @test all(p .=== -NaN)
+    #
     w = zeros(5)
-    p = similar(w)
-    for u ∈ (0.0, 0.5, 1.0, 1.5)
-        algorithm3!(p, w, 0.0)
+    for u ∈ (nextfloat(0.0), eps(), 0.5, prevfloat(1.0), 1.0)
+        algorithm3!(p, w, u)
         @test p == fill(0.2, 5)
     end
 
@@ -165,7 +178,7 @@ end
         w[rand(rng, 1:256, 64)] .= 0
         x = copyto!(similar(w), w)
         p = similar(w)
-        for u = 0.0:.000001:0.999999
+        for u = 0.000001:.000001:0.999999
             w .= x .* u
             algorithm3!(p, w, u)
             @test all(!iszero, p)
@@ -205,7 +218,7 @@ end
         p3 = [5, 1, 3, 0, 0]
         @test_throws InexactError algorithm3!(p3, 0)
         @test_throws InexactError algorithm3!(p3, 1)
-        @test_throws InexactError algorithm3!(p3, 999)
+        @test_throws DomainError algorithm3!(p3, 999)
         #
         w = [5/9, 1/9, 3/9, 0, 0]
         w2 = [5//9, 1//9, 3//9, 0, 0]
@@ -222,10 +235,13 @@ end
         @test_throws InexactError algorithm3!(p3, w3, 1)
         @test_throws InexactError algorithm3!(p3, w2, 1)
         @test_throws InexactError algorithm3!(p3, w2, 1)
-
-        for u ∈ (1//2, 0.5, 1, 0)
-            @inferred algorithm3(w, u)
-            @inferred algorithm3(w2, u)
+        ps = (algorithm3(w3, 1//2), algorithm3(w3, 0.5), algorithm3(w3, 1), algorithm3(w3, 0))
+        for T ∈ (Float16, Float32, Float64, BigFloat, Int8, Int16, Int32, Int64, BigInt, Rational{Int8}, Rational{Int16}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
+            𝑤 = T.(w3)
+            for (i, u) ∈ enumerate((1//2, 0.5, 1, 0))
+                p = @inferred algorithm3(𝑤, u)
+                @test p ≈ ps[i]
+            end
         end
     end
 end
