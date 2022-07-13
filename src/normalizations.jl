@@ -483,8 +483,8 @@ algorithm3!(p::Vector{S}, w::Vector{T}, u::U) where {S<:Real, T<:Real, U<:Real} 
 
 Return the vector of probabilities created by normalizing `w` to probabilities, then
 spreading the probability mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which
-are equal to zero. If all values of `w` are zero and `u ≠ 0`, a vector uniform probability
-mass is returned. It is assumed that `w` does not contain `NaN`(s).
+are equal to zero. If all values of `w` are zero and `u ≠ 0`, a vector of uniform
+probability mass is returned.
 
 Mathematically, given:
 
@@ -529,8 +529,8 @@ julia> algorithm3([1, 2, 3], 0.9)                  # in absence of 0's, just nor
 ```
 """
 algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:Real} =
-    # algorithm3!(similar(p, promote_type(_typeofinv(T), _typeofinv(S))), p, u)
     algorithm3!(similar(p, promote_type(_typeofinv(T))), p, u)
+    # algorithm3!(similar(p, promote_type(_typeofinv(T), _typeofinv(S))), p, u)
 
 #### Algorithm 3, in terms of ratio
 
@@ -538,8 +538,8 @@ algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:Real} =
     algorithm3_ratio!(p::Vector{T}, r::Real) where {T<:Real}
 
 Normalize `p` to probabilities, then spread the probability mass `u = r / (1 + r)`
-across the 0 or more elements of `p` such that the ratio of (inititally) zero elements
-to non-zero elements is equal to `r`.
+across the 0 or more elements of `p` such that the ratio of the sum of
+(inititally) zero elements to the sum of the non-zero elements is equal to `r`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm3_ratio`](@ref), [`algorithm3!`](@ref)
@@ -549,10 +549,22 @@ algorithm3_ratio!(p, r) = algorithm3!(p, _u(r))
 """
     algorithm3_ratio!(p::Vector{T}, w::Vector{<:Real}, r::Real) where {T<:Real}
 
-Normalize `w` to probabilities, storing the result in `p`, then spread the
-probability mass `u = r / (1 + r)` across the 0 or more elements of `p` such that
-the ratio of (inititally) zero elements to non-zero elements is equal to `r`.
+Normalize `w` to probabilities, storing the result in `p`, then spread the probability
+mass `u = r / (1 + r)` across the 0 or more elements of `w` such that the ratio of the
+sum of (inititally) zero elements to the sum of non-zero elements is equal to `r`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
+
+# Examples
+```jldoctest
+julia> w = [0, 10, 5, 1]; r = 1.0;
+
+julia> algorithm3_ratio!(similar(w, Float64), w, r)
+4-element Vector{Float64}:
+ 0.5
+ 0.3125
+ 0.15625
+ 0.03125
+```
 """
 algorithm3_ratio!(p, w, r) = algorithm3!(p, w, _u(r))
 
@@ -561,11 +573,13 @@ algorithm3_ratio!(p, w, r) = algorithm3!(p, w, _u(r))
 
 Return a vector of probabilities by normalizing `w` to probabilities, then
 spread the probability mass `u = r / (1 + r)` across the 0 or more elements of `w`
-such that the ratio of (inititally) zero elements to non-zero elements is equal to `r`.
+such that the ratio of the sum of (inititally) zero elements to the sum of non-zero
+elements is equal to `r`. If all values of `w` are zero and `r ≠ 0`, a vector of
+uniform probability mass is returned.
 
 Mathematically, given:
 
-𝐰 ∈ ℝᴺ, r ∈ ℝ₊, 0 ≤ r < Inf, J = {i : 𝐰ᵢ = 0}
+𝐰 ∈ ℝᴺ, 0 ≤ wᵢ < ∞, r ∈ ℝ, 0 ≤ r ≤ Inf, J = {i : 𝐰ᵢ = 0}
 
 ```
 pᵢ =
@@ -573,30 +587,41 @@ pᵢ =
             (r / (1+r)) / |J|                     if i ∈ J
             (1 / (1+r)) * 𝐰ᵢ / ∑ᵢ₌₁ᴺ 𝐰ᵢ           otherwise
     Case 2: if J = {1,…,N}
-            1/N
+            r / (r * N)                           Equivalent to 1/N if 𝐰 ≠ ̲0
 ```
 
 See also: [`algorithm3_ratio!`](@ref), [`algorithm3`](@ref)
 
 # Examples
 ```jldoctest
-julia> w = [1, 0, 3, 0, 5]; r = 2;
+julia> w = Rational{Int}[1, 0, 3, 0, 5]; r = 3;
 
-julia> algorithm3_ratio(w, r)
-5-element Vector{Float64}:
- 0.03703703703703704
- 0.3333333333333333
- 0.11111111111111113
- 0.3333333333333333
- 0.1851851851851852
+julia> p = algorithm3_ratio(w, r)
+5-element Vector{Rational{Int64}}:
+ 1//36
+ 3//8
+ 1//12
+ 3//8
+ 5//36
 
-julia> algorithm3(w, r / (1 + r))    # Note equivalence
-5-element Vector{Float64}:
- 0.03703703703703704
- 0.3333333333333333
- 0.11111111111111113
- 0.3333333333333333
- 0.1851851851851852
+julia> r′ = sum(p[findall(iszero, w)]) / sum(p[findall(!iszero, w)]); (r′, r′ == r)
+(3//1, true)
+
+julia> algorithm3(w, r / (1 + r))              # Note equivalence
+5-element Vector{Rational{Int64}}:
+ 1//36
+ 3//8
+ 1//12
+ 3//8
+ 5//36
+
+julia> algorithm3_ratio(w, Inf)                # r = Inf ⟹ u = 1
+5-element Vector{Rational{Int64}}:
+ 0//1
+ 1//2
+ 0//1
+ 1//2
+ 0//1
 ```
 """
 algorithm3_ratio(p, r) = algorithm3(p, _u(r))
