@@ -598,12 +598,12 @@ See also: [`algorithm2_1_algorithm3`](@ref)
 ```jldoctest
 julia> I = [1, 2, 5, 6]; w = [10, 0, 30, 40, 0, 20]; u = 0.5;
 
-julia> algorithm2_1_algorithm3!(similar(I, Float64), I, w, u)
-4-element Vector{Float64}:
- 0.16666666666666666
- 0.25
- 0.25
- 0.3333333333333333
+julia> algorithm2_1_algorithm3!(similar(I, Rational{Int}), I, w, u)
+4-element Vector{Rational{Int64}}:
+ 1//6
+ 1//4
+ 1//4
+ 1//3
 ```
 """
 function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
