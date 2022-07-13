@@ -387,8 +387,8 @@ _check_u01(u::S) where {S<:Real} = (zero(S) ≤ u ≤ one(S) || throw(DomainErro
     algorithm3!(p::Vector{T}, u::Real) where {T<:Real}
 
 Normalize `p` to probabilities, spreading probability mass `u` across the
-0 or more elements of `p` which are equal to zero. It is assumed (note: not checked!)
-that `0 ≤ u ≤ 1`. If all values of `p` are equal to zero, `p` is filled with `1 / length(p)`.
+0 or more elements of `p` which are equal to zero. If all values of `p` are equal
+to zero, `p` is filled with `1 / length(p)`.
 Refer to the respective documentation for a description of `algorithm3`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
@@ -402,16 +402,10 @@ julia> algorithm3!(Rational{Int}[0, 10, 5, 0], 0.5)
  1//3
  1//6
  1//4
-
-julia> algorithm3!(Rational{Int}[0, 10, 5, 0], 1.5)     # not desirable!
-4-element Vector{Rational{Int64}}:
-  3//4
- -1//3
- -1//6
-  3//4
 ```
 """
 function algorithm3!(p::Vector{T}, u::T) where {T<:Real}
+    _check_u01(u)
     s = zero(T)
     z = 0
     @inbounds @simd for i ∈ eachindex(p)
@@ -433,12 +427,12 @@ algorithm3!(p::Vector{T}, u::S) where {T<:Real, S<:Real} = algorithm3!(p, conver
     algorithm3!(p::Vector{T}, w::Vector{<:Real}, u::Real) where {T<:Real}
 
 Normalize `w` to probabilities, storing the result in `p`, spreading probability
-mass `u` across the 0 or more elements of `w` which are equal to zero. It is assumed
-(note: not checked!) that `0 ≤ u ≤ 1`. If all values of `w` are zero,
-`p` is filled with `1 / length(p)`.
+mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which are equal to zero.
+If all values of `w` are zero, `p` is filled with `1 / length(p)`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 """
 function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
+    _check_u01(u)
     s = zero(T)
     z = 0
     @inbounds @simd for i ∈ eachindex(p, w)
@@ -460,7 +454,7 @@ algorithm3!(p::Vector{S}, w::Vector{T}, u::U) where {S<:Real, T<:Real, U<:Real} 
 """
     algorithm3(w::Vector{<:Real}, u::Real)
 
-Return a vector of probabilities by normalizing `w` to probabilities, then
+Return a vector of probabilities created by normalizing `w` to probabilities, then
 spreading the probability mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which
 are equal to zero. If all values of `w` are zero, `p` is filled with `1 / length(p)`.
 
@@ -591,13 +585,17 @@ algorithm3_ratio(p, r) = algorithm3(p, _u(r))
 # pᵢ = u / (N - k), i=k+1,…,N
 # pᵢ = (1 - u) wᵢ / ∑ᵢ₌₁ᵏ wᵢ, i = 1,…,k
 """
-    algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{<:Real}, u::S) where {S<:AbstractFloat}
+    algorithm2_1_algorithm3!(p::Vector{T}, I::Vector{Int}, w::Vector{<:Real}, u::Real) where {T<:Real}
+
+Normalize `w[I]` to probabilities, storing the result in `p`, then spreading probability mass
+`0 ≤ u ≤ 1` across the 0 or more elements of `w[I]` which are equal to zero.
 
 Fill `p` with the probabilities which result from normalizing the weights selected by `I`
 from `w`, wherein zero or more of the elements of `w` has an unknown (indicated by `0`) value.
 The total probability mass of the unknown category is specified by `u`.
 Caller must ensure that `u` is in the closed interval [0, 1].
 If all selected values are zero, `p` is filled with `1 / length(p)`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm2_1_algorithm3`](@ref)
 
@@ -613,18 +611,19 @@ julia> algorithm2_1_algorithm3!(similar(I, Float64), I, w, u)
  0.3333333333333333
 ```
 """
-function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S<:AbstractFloat, T<:Real}
+function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
+    _check_u01(u)
     checkbounds(w, I)
     s = zero(T)
     z = 0
-    @inbounds @simd for i ∈ eachindex(p, I)
+    @inbounds @simd ivdep for i ∈ eachindex(p, I)
         w̃ = w[I[i]]
         s += w̃
         p[i] = w̃
         z += w̃ == zero(T)
     end
-    c = z == 0 ? inv(s) : (one(S) - u) / s
-    u′ = z == length(p) ? inv(z) : u / z
+    c = z == 0 ? one(S) / s : (one(S) - u) / s
+    u′ = z == length(p) ? one(S) / z : u / z
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
@@ -632,13 +631,15 @@ function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u:
     end
     p
 end
+algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::U) where {S<:Real, T<:Real, U<:Real} = algorithm2_1_algorithm3!(p, I, w, convert(S, u))
 
 """
-    algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{<:Real}, u::AbstractFloat)
+    algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{<:Real}, u::Real)
 
-Return a vector of probabilities, selecting components from `w` using the index set `I`.
-Categories with unknown weight (indicated by `0` value) are assumed to have a total
-probability mass `u`. Equivalent to `algorithm3(algorithm2_1(I, w), u)` but more efficient.
+Return a vector of probabilities, normalizing the components selected from `w` by the
+index set `I`, then spreading the probability mass `0 ≤ u ≤ 1` across the 0 or more
+selected elements which are equal to zero.
+Equivalent to `algorithm3(algorithm2_1(I, w), u)` but more efficient.
 
 See also: [`algorithm2_1_algorithm3!`](@ref)
 
@@ -661,8 +662,8 @@ julia> algorithm3(algorithm2_1(I, w), u)
  0.3333333333333333
 ```
 """
-algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:AbstractFloat} =
-    (_check_u01(u); algorithm2_1_algorithm3!(similar(I, promote_type(T, S, Float64)), I, w, u))
+algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:Real} =
+    algorithm2_1_algorithm3!(similar(I, _typeofinv(T)), I, w, u)
 
 ################
 # Algorithm 4
