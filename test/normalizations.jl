@@ -819,6 +819,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -839,6 +840,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω == ω₁
@@ -860,6 +862,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -882,6 +885,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[3] == ω[5] == u / 2
@@ -906,6 +910,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -934,6 +939,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≉ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[5] == u
@@ -959,6 +965,7 @@ end
     @test ω₁ ≉ w₁ ./ sum(w₁)
     @test ω₁ ≈ w₂ ./ sum(w₂)
     @test sum(ω₁[J₂]) ≈ sum(w₁[J₂]) / sum(w₁[I₁′])
+    @test sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(ω₁[J₂]) / sum(ω₁[I₂′])
     ω = algorithm3(ω₁, u)
     @test sum(ω) ≈ 1
     @test ω[4] == u / 2
