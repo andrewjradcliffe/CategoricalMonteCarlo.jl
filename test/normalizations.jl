@@ -94,6 +94,29 @@
             end
         end
     end
+
+    @testset "algorithm 2.1, type handling" begin
+        w1 = [5/9, 1/9, 3/9, 0, 0]
+        w2 = [5//9, 1//9, 3//9, 0, 0]
+        w3 = [5, 1, 3, 0, 0]
+        p1 = [prevfloat(5/6), prevfloat(1/6), 0.0]
+        p2 = [5//6, 1//6, 0]
+        p3 = [prevfloat(5/6), 1/6, 0.0]
+        I = [1, 2, 5]
+        @test @inferred algorithm2_1(I, w) == p1
+        @test @inferred algorithm2_1(I, w2) == p2
+        @test @inferred algorithm2_1(I, w3) == p3
+        p = similar(p1)
+        @test @inferred algorithm2_1!(p, I, w1) ≈ p3
+        @test @inferred algorithm2_1!(p, I, w2) ≈ p3
+        @test @inferred algorithm2_1!(p, I, w3) ≈ p3
+        #
+        for T ∈ (Float16, Float32, Float64, BigFloat, Int8, Int16, Int32, Int64, BigInt, Rational{Int8}, Rational{Int16}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
+            𝑤 = T.(w3)
+            p′ = @inferred algorithm2_1(I, 𝑤)
+            @test p′ ≈ p3
+        end
+    end
 end
 
 @testset "algorithm 3" begin
