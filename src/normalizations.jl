@@ -97,7 +97,7 @@ function vnormalize1!(A::AbstractArray{T}) where {T<:Base.IEEEFloat}
 end
 
 function normalize1!(B::AbstractArray{T}, A::AbstractArray{T}) where {T<:Base.IEEEFloat}
-    s = zero(S)
+    s = zero(T)
     @turbo for i ∈ eachindex(A)
         s += A[i]
     end

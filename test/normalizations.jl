@@ -135,7 +135,7 @@ end
         p2 = [5//6, 1//6, 0]
         p3 = [prevfloat(5/6), 1/6, 0.0]
         I = [1, 2, 5]
-        @test @inferred algorithm2_1(I, w) == p1
+        @test @inferred algorithm2_1(I, w1) == p1
         @test @inferred algorithm2_1(I, w2) == p2
         @test @inferred algorithm2_1(I, w3) == p3
         p = similar(p1)
