@@ -15,6 +15,21 @@
     end
 end
 
+@testset "_u, _checku01" begin
+    @test _u(1.0) === 0.5
+    @test _u(1//1) === 1//2
+    @test _u(0) === 0.0
+    @test _u(Inf) === 1.0
+    for T ∈ (Int64, UInt, Float64, BigInt, BigFloat, Rational{Int})
+        @test_nowarn _check_u01(zero(T))
+        @test_nowarn _check_u01(one(T))
+        @test_throws DomainError _check_u01(T(2))
+    end
+    @test_nowarn _check_u01(0.5)
+    @test_nowarn _check_u01(1//2)
+    @test_nowarn _check_u01(big(0.5))
+end
+
 @testset "algorithm 2.1" begin
     w = [7.3, 10.2, 5.1, 2.7, 2.89]
     p = [1.0]
