@@ -369,19 +369,31 @@ algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {M
 
 #### Algorithm 3. -- FillMass
 # 𝐰 ∈ ℝᴺ, u ∈ ℝ, 0 ≤ u ≤ 1
-# -> ω ∈ ℝᴺ, J = {i: wᵢ = 0}
-# ωᵢ =
+# -> p ∈ ℝᴺ, J = {i: wᵢ = 0}
+# pᵢ =
 #     Case 1: if J ≠ ∅
 #             u / |J|                     if i ∈ J
 #             (1 - u) * 𝐰ᵢ / ∑ᵢ₌₁ᴺ 𝐰ᵢ     otherwise
 #     Case 2: if J = 1,…,N
-#             1/N
+#             1 / N
+## Mathematically consistent handling of Case 2:
+# If 𝐰 = ̲0, then the ratio of masses is infinite, i.e. u / ∑ᵢ𝐰ᵢ = ∞, assuming that u > 0,
+# which may not necessarily be the case. If u > 0, then it seems reasonable to
+# handle case 2 as above, as one is effectively stating that u′ = u / N will be assigned
+# to each pᵢ′ intermediate, then the pᵢ's will be normalized to sum to 1 --
+# that is, ∑ᵢ₌₁ᴺ pᵢ′ = ∑ᵢ₌₁ᴺ u′ = N * u′    ⟹    pᵢ = u′ / (N * u′) = 1 / N
+# This is the origin Case 2, but if one implements it as simple 1/N assignment,
+# behavior for u = 0 is not mathematically correct -- it should be undefined as it is 0/0.
+# I find the mathematically correct behavior much easier to reason about.
+# Moreover, this approach encourages a sensible treatment of r = ∞ in the alternative
+# which uses the ratio. In general, seems better to follow the math and return NaNs than
+# add spooky substitutions such as 1/N even when u=0 and 𝐰 = ̲0.
 
 ## Alternative using ratio
 # r ∈ ℝ
 # r = u / (1 - u)    ⟹    u = r / (1 + r)
 # _r(u::T) where {T<:Real} = u / (one(T) - u)
-_u(r::T) where {T<:Real} = r / (one(T) + r)
+_u(r::T) where {T<:Real} = isinf(r) && !signbit(r) ? one(T) : r / (one(T) + r)
 
 _check_u01(u::S) where {S<:Real} = (zero(S) ≤ u ≤ one(S) || throw(DomainError(u, "u must be: $(zero(S)) ≤ u ≤ $(one(S))")))
 
@@ -389,9 +401,8 @@ _check_u01(u::S) where {S<:Real} = (zero(S) ≤ u ≤ one(S) || throw(DomainErro
     algorithm3!(p::Vector{T}, u::Real) where {T<:Real}
 
 Normalize `p` to probabilities, spreading probability mass `u` across the
-0 or more elements of `p` which are equal to zero. If all values of `p` are equal
-to zero, `p` is filled with `1 / length(p)`.
-Refer to the respective documentation for a description of `algorithm3`.
+0 or more elements of `p` which are equal to zero. If all values of `w` are zero
+and `u ≠ 0`, `p` will be with uniform probability mass.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm3`](@ref), [`algorithm3_ratio!`](@ref)
@@ -416,7 +427,8 @@ function algorithm3!(p::Vector{T}, u::T) where {T<:Real}
         z += pᵢ == zero(T)
     end
     c = z == 0 ? inv(s) : (one(T) - u) / s
-    u′ = z == length(p) ? one(T) / z : u / z
+    # u′ = z == length(p) ? one(T) / z : u / z
+    u′ = z == length(p) ? u / (u * z) : u / z
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         p[i] = pᵢ == zero(T) ? u′ : pᵢ * c
@@ -430,8 +442,20 @@ algorithm3!(p::Vector{T}, u::S) where {T<:Real, S<:Real} = algorithm3!(p, conver
 
 Normalize `w` to probabilities, storing the result in `p`, spreading probability
 mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which are equal to zero.
-If all values of `w` are zero, `p` is filled with `1 / length(p)`.
+If all values of `w` are zero and `u ≠ 0`, `p` will be with uniform probability mass.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
+
+# Examples
+```jldoctest
+julia> w = [0, 10, 5, 1]; u = 0.5;
+
+julia> algorithm3!(similar(w, Float64), w, u)
+4-element Vector{Float64}:
+ 0.5
+ 0.3125
+ 0.15625
+ 0.0312
+```
 """
 function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
     _check_u01(u)
@@ -444,7 +468,8 @@ function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
         z += w̃ == zero(T)
     end
     c = z == 0 ? one(S) / s : (one(S) - u) / s
-    u′ = z == length(p) ? one(S) / z : u / z
+    # u′ = z == length(p) ? one(S) / z : u / z
+    u′ = z == length(p) ? u / (u * z) : u / z
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
@@ -456,13 +481,14 @@ algorithm3!(p::Vector{S}, w::Vector{T}, u::U) where {S<:Real, T<:Real, U<:Real} 
 """
     algorithm3(w::Vector{<:Real}, u::Real)
 
-Return a vector of probabilities created by normalizing `w` to probabilities, then
+Return the vector of probabilities created by normalizing `w` to probabilities, then
 spreading the probability mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which
-are equal to zero. If all values of `w` are zero, `p` is filled with `1 / length(p)`.
+are equal to zero. If all values of `w` are zero and `u ≠ 0`, a vector uniform probability
+mass is returned. It is assumed that `w` does not contain `NaN`(s).
 
 Mathematically, given:
 
-𝐰 ∈ ℝᴺ, u ∈ ℝ, 0 ≤ u ≤ 1, J = {i : 𝐰ᵢ = 0}
+𝐰 ∈ ℝᴺ, 0 ≤ wᵢ < ∞, u ∈ ℝ, 0 ≤ u ≤ 1, J = {i : 𝐰ᵢ = 0}
 
 ```
 pᵢ =
@@ -470,7 +496,7 @@ pᵢ =
             u / |J|                     if i ∈ J
             (1 - u) * 𝐰ᵢ / ∑ᵢ₌₁ᴺ 𝐰ᵢ     otherwise
     Case 2: if J = {1,…,N}
-            1/N
+            u / (u * N)                 Equivalent to 1/N if 𝐰 ≠ ̲0
 ```
 
 See also: [`algorithm3!`](@ref), [`algorithm3_ratio`](@ref)
@@ -484,18 +510,18 @@ julia> algorithm3([0, 10, 5, 0], 0.5)
  0.16666666666666666
  0.25
 
-julia> algorithm3([0, 0, 0], 0.5)           # fill with 1 / length
-3-element Vector{Float64}:
- 0.3333333333333333
- 0.3333333333333333
- 0.3333333333333333
+julia> algorithm3(Rational{Int}[0, 0, 0], 0.25)    # 𝐰 = ̲0
+3-element Vector{Rational{Int64}}:
+ 1//3
+ 1//3
+ 1//3
 
-julia> algorithm3([0//1, 0//1], 0.0)        # fill with 1 / length, even if zero mass
-2-element Vector{Rational{Int64}}:
- 1//2
- 1//2
+julia> algorithm3([0, 0], 0.0)                     # 𝐰 = ̲0 and u = 0
+2-element Vector{Float64}:
+ NaN
+ NaN
 
-julia> algorithm3([1, 2, 3], 0.9)           # in absence of 0's, just normalize
+julia> algorithm3([1, 2, 3], 0.9)                  # in absence of 0's, just normalize
 3-element Vector{Float64}:
  0.16666666666666666
  0.3333333333333333
@@ -503,7 +529,8 @@ julia> algorithm3([1, 2, 3], 0.9)           # in absence of 0's, just normalize
 ```
 """
 algorithm3(p::Vector{T}, u::S) where {T<:Real, S<:Real} =
-    (_check_u01(u); algorithm3!(similar(p, _typeofinv(T)), p, u))
+    # algorithm3!(similar(p, promote_type(_typeofinv(T), _typeofinv(S))), p, u)
+    algorithm3!(similar(p, promote_type(_typeofinv(T))), p, u)
 
 #### Algorithm 3, in terms of ratio
 
