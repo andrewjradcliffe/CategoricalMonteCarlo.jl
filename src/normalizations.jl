@@ -590,11 +590,11 @@ algorithm3_ratio!(p, w, r) = algorithm3!(p, w, _u(r))
 """
     algorithm3_ratio(w::Vector{<:Real}, r::Real)
 
-Return a vector of probabilities by normalizing `w` to probabilities, then
+Return a vector of probabilities created by normalizing `w` to probabilities, then
 spread the probability mass `u = r / (1 + r)` across the 0 or more elements of `w`
-such that the ratio of the sum of (inititally) zero elements to the sum of non-zero
-elements is equal to `r`. If all values of `w` are zero and `r ≠ 0`, a vector of
-uniform probability mass is returned.
+which are equal to zero such that the ratio of the sum of (inititally) zero elements
+to the sum of non-zero elements is equal to `r`. If all values of `w` are zero
+and `r ≠ 0`, a vector of uniform probability mass is returned.
 
 Mathematically, given:
 
@@ -733,6 +733,67 @@ julia> algorithm3!(algorithm2_1(I, w), u)
 """
 algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:Real} =
     algorithm2_1_algorithm3!(similar(I, _typeofinv(T)), I, w, u)
+
+#### Algorithm 2.1 fused with Algorithm 3 ratio
+"""
+    algorithm2_1_algorithm3!(p::Vector{T}, I::Vector{Int}, w::Vector{<:Real}, u::Real) where {T<:Real}
+
+Normalize `w[I]` to probabilities, storing the result in `p`, then spreading probability mass
+`u = r / (1 + r)` across the 0 or more elements of `w[I]` which are equal to zero such that
+the ratio of the sum of (inititally) zero elements to the sum of non-zero elements is equal
+to `r`.
+Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
+
+See also: [`algorithm2_1_algorithm3_ratio`](@ref), [`algorithm2_1!`](@ref),
+ [`algorithm3_ratio!`](@ref)
+
+# Examples
+```jldoctest
+julia> I = [1, 2, 5, 6]; w = [10, 0, 30, 40, 0, 20]; r = 1.0;
+
+julia> algorithm2_1_algorithm3_ratio!(similar(I, Rational{Int}), I, w, r)
+4-element Vector{Rational{Int64}}:
+ 1//6
+ 1//4
+ 1//4
+ 1//3
+```
+"""
+algorithm2_1_algorithm3_ratio!(p, I, w, r) = algorithm2_1_algorithm3!(p, I, w, _u(r))
+
+"""
+    algorithm2_1_algorithm3_ratio(I::Vector{Int}, w::Vector{<:Real}, r::Real)
+
+Return a vector of probabilities, normalizing the components selected from `w` by the
+index set `I`, then spreading the probability mass `u = r / (1 + r)` across the 0 or more
+elements of `w[I]` which are equal to zero such that the ratio of the sum of (inititally)
+zero elements to the sum of non-zero elements is equal to `r`. If all values of `w[I]` are
+zero and `r ≠ 0`, a vector of uniform probability mass is returned.
+Equivalent to `algorithm3_ratio!(algorithm2_1(I, w), u)` but more efficient.
+
+See also: [`algorithm2_1_algorithm3_ratio!`](@ref), [`algorithm2_1`](@ref),
+ [`algorithm3_ratio`](@ref)
+
+# Examples
+```jldoctest
+julia> I = [1, 2, 5, 6]; w = [10, 0, 30, 40, 0, 20]; r = 1.0;
+
+julia> algorithm2_1_algorithm3_ratio(I, w, r)
+4-element Vector{Float64}:
+ 0.16666666666666666
+ 0.25
+ 0.25
+ 0.3333333333333333
+
+julia> algorithm3_ratio!(algorithm2_1(I, w), r)
+4-element Vector{Float64}:
+ 0.16666666666666666
+ 0.25
+ 0.25
+ 0.3333333333333333
+```
+"""
+algorithm2_1_algorithm3_ratio(I, w, r) = algorithm2_1_algorithm3(I, w, _u(r))
 
 ################
 # Algorithm 4
