@@ -1,5 +1,20 @@
 # Tests of normalization methods
 
+@testset "misc type inference functions" begin
+    @test _typeofinv(1) === Float64
+    @test _typeofinv(Int) === Float64
+    @test _typeofinv(Rational{Int64}) === Rational{Int64}
+    #
+    ws = ([1,2,3], fill(1/6, 6), fill(1//10, 9))
+    @test _typeofprod(ws) === Float64
+    ws2 = (ws[1], fill(1//6, 6), ws[3])
+    @test _typeofprod(ws2) === Rational{Int64}
+    for T ∈ (Int8, Int16, Int32)
+        ws3 = (Int8[1,2,3], T[4,5,6], Int8[7,8,9])
+        @test _typeofprod(ws3) === Int64
+    end
+end
+
 @testset "algorithm 2.1" begin
     w = [7.3, 10.2, 5.1, 2.7, 2.89]
     p = [1.0]
