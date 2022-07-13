@@ -211,8 +211,8 @@ algorithm2_1(I::Vector{Int}, w::Vector{T}) where {T<:Real} = algorithm2_1!(simil
 # The iᵗʰ term will be computed as:
 #     pᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ⱼ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[j]]
 
-_typeofprod(ws::NTuple{N, Vector{<:Real}}) where {N} = typeof(mapreduce(first, *, ws))
-_typeofprod(ws::NTuple{N, Vector{T}}) where {N} where {T<:Real} = T
+_typeofprod(ws::NTuple{N, Vector{<:Real}}) where {N} = promote_type(Int, typeof(mapreduce(first, *, ws)))
+_typeofprod(ws::NTuple{N, Vector{T}}) where {N} where {T<:Real} = promote_type(Int, T)
 
 function algorithm2_2_quote(M::Int)
     Is = Expr(:tuple)
