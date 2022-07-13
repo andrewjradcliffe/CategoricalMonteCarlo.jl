@@ -1,8 +1,10 @@
 using CategoricalMonteCarlo
 using Random
+using SparseArrays
 using Test
 
-import CategoricalMonteCarlo: _check_reducedims, splitranges
+import CategoricalMonteCarlo: _check_reducedims, splitranges,
+    _typeofinv, _typeofprod, _u, _check_u01
 
 const tests = [
     "utils.jl",
