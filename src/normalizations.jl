@@ -822,8 +822,9 @@ of the various combinations of intersections which can be formed from J₁, J₂
 However, complexity of outputs aside, the motivating concept is quite simple:
 take a vector of weights, `𝐰₁` and re-weight some subset (I₂′) of those weights using
 a second set of weights, `𝐰₂`, while preserving the proportion of probability mass
-derived from `𝐰₁`. That is, given `p = algorithm4(𝐰₁, 𝐰₂)`, the following relationship
-is preserved: `sum(p[J₂]) ≈ sum(𝐰₁[J₂]) / sum(𝐰₁[I₁′])`.
+derived from `𝐰₁`. That is, given `p = algorithm4(𝐰₁, 𝐰₂)`, the following relationships
+are preserved: `sum(p[J₂]) ≈ sum(𝐰₁[J₂]) / sum(𝐰₁[I₁′])`,
+`sum(w₁[J₂]) / sum(w₁[I₂′]) ≈ sum(p[J₂]) / sum(p[I₂′])`.
 
 See also: [`algorithm4!`](@ref)
 
