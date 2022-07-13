@@ -275,7 +275,7 @@ julia> algorithm2_2!(zeros(3), Is, ws)
  0.5
 ```
 """
-algorithm2_2!(p, Is::NTuple{1, Vector{Int}}, ws::NTuple{1, Vector{T}}) where {M} where {T<:Real} = algorithm2_1!(p, (@inbounds Is[1]), (@inbounds ws[1]))
+algorithm2_2!(p::Vector{T}, Is::Tuple{Vector{Int}}, ws::Tuple{Vector{S}}) where {T<:Real, S<:Real} = algorithm2_1!(p, (@inbounds Is[1]), (@inbounds ws[1]))
 
 """
     algorithm2_2(Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {M}
