@@ -589,11 +589,6 @@ algorithm3_ratio(p, r) = algorithm3(p, _u(r))
 
 Normalize `w[I]` to probabilities, storing the result in `p`, then spreading probability mass
 `0 ≤ u ≤ 1` across the 0 or more elements of `w[I]` which are equal to zero.
-
-Fill `p` with the probabilities which result from normalizing the weights selected by `I`
-from `w`, wherein zero or more of the elements of `w` has an unknown (indicated by `0`) value.
-The total probability mass of the unknown category is specified by `u`.
-Caller must ensure that `u` is in the closed interval [0, 1].
 If all selected values are zero, `p` is filled with `1 / length(p)`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
