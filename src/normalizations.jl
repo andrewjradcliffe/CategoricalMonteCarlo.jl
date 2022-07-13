@@ -122,33 +122,16 @@ normalize1(A::AbstractArray{<:Base.IEEEFloat}) = normalize1!(similar(A), A)
 # I ∈ ℕᴺ, 𝐰 ∈ ℝᴰ; I ⊆ 1,…,D
 # -> ω ∈ ℝᴺ, ωᵢ = 𝐰ᵢ / ∑ⱼ 𝐰ⱼ; j ∈ I
 
-# function unsafe_algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
-#     s = zero(S)
-#     @inbounds @simd ivdep for i ∈ eachindex(I, p)
-#         w̃ = w[I[i]]
-#         s += w̃
-#         p[i] = w̃
-#     end
-#     # c = inv(s)
-#     # Guarantees type stability at negligible expense compared to what is gained
-#     c = one(T) / s
-#     @inbounds @simd for i ∈ eachindex(p)
-#         p[i] *= c
-#     end
-#     return p
-# end
-
 """
     algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{<:Real}) where {T<:Real}
 
-Fill `p` with the probabilities that result from normalizing the weights selected by `I` from `w`.
+Fill `p` with the probabilities that result from normalizing the weights `w[I]`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm2_1`](@ref)
 """
 function algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Real, S<:Real}
     checkbounds(w, I)
-    # unsafe_algorithm2_1!(p, I, w)
     s = zero(S)
     @inbounds @simd ivdep for i ∈ eachindex(I, p)
         w̃ = w[I[i]]
