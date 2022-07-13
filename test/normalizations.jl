@@ -642,9 +642,9 @@ end
     @test algorithm4(w₁, w₂) ≈ p
     for T ∈ (Float32, Float64, BigFloat, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
         𝑤₁ = T.(w₁)
-        @test algorithm4(𝑤₁, w₂) ≈ p rtol=∛(eps())
+        @test algorithm4(𝑤₁, w₂) ≈ p rtol=√(eps())
         𝑤₂ = T.(w₂)
-        @test algorithm4(w₁, 𝑤₂) ≈ p rtol=∛(eps())
+        @test algorithm4(w₁, 𝑤₂) ≈ p rtol=√(eps())
         𝑝 = @inferred algorithm4(𝑤₁, 𝑤₂)
         @test eltype(𝑝) === T
         @test 𝑝 ≈ p rtol=∛(eps())
