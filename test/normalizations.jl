@@ -640,7 +640,7 @@ end
     p = [3/22, 3/44, 9/44, 1/4, 15/44]
     pᵣ = [3//22, 3//44, 9//44, 1//4, 15//44]
     @test algorithm4(w₁, w₂) ≈ p
-    for T ∈ (Float32, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128})
+    for T ∈ (Float32, Float64, BigFloat, Rational{Int16}, Rational{Int32}, Rational{Int64}, Rational{Int128}, Rational{BigInt})
         𝑤₁ = T.(w₁)
         @test algorithm4(𝑤₁, w₂) ≈ p rtol=∛(eps())
         𝑤₂ = T.(w₂)
