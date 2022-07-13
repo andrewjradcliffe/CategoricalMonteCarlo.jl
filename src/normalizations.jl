@@ -151,8 +151,7 @@ end
     algorithm2_1(I::Vector{Int}, w::Vector{<:Real})
 
 Create a vector of probabilities by normalizing the weights selected by `I` from `w`.
-It is assumed that `0 ≤ wᵢ < Inf` and that `NaN`'s are not present, at least for
-the (sub)set `w[I]`.
+It is assumed that `0 ≤ wᵢ < Inf, i ∈ I`.
 
 Mathematically, given:
 
@@ -160,7 +159,7 @@ I ∈ ℕᴺ, 𝐰 ∈ ℝᴰ; I ⊆ {1,…,D}
 
 The iᵗʰ term will be computed as: pᵢ = 𝐰ᵢ / ∑ⱼ 𝐰ⱼ; j ∈ I
 
-See also: [`algorithm2_1!`](@ref)
+See also: [`algorithm2_1!`](@ref), [`algorithm2_2`](@ref)
 
 # Examples
 ```jldoctest
@@ -172,11 +171,11 @@ julia> algorithm2_1(I, w)
  0.1
  0.4
 
-julia> algorithm2_1(I, Rational.(w))
+julia> algorithm2_1([1, 1, 2], Rational.(w))
 3-element Vector{Rational{Int64}}:
- 1//2
- 1//10
- 2//5
+ 5//14
+ 5//14
+ 2//7
 
 julia> w[2] = -w[2];
 
@@ -191,6 +190,12 @@ julia> algorithm2_1(I, [5, 4, 3, 2, Inf])
    0.0
  NaN
    0.0
+
+julia> algorithm2_1(I, [5, NaN, 3, 2, 1])
+3-element Vector{Float64}:
+ NaN
+ NaN
+ NaN
 ```
 """
 algorithm2_1(I::Vector{Int}, w::Vector{T}) where {T<:Real} = algorithm2_1!(similar(I, _typeofinv(T)), I, w)
@@ -198,6 +203,13 @@ algorithm2_1(I::Vector{Int}, w::Vector{T}) where {T<:Real} = algorithm2_1!(simil
 #### Algorithm 2.2
 # I₁ ∈ ℕᴺ, I₂ ∈ ℕᴺ, …, Iₘ ∈ ℕᴺ; 𝐰₁ ∈ ℝᴰ¹, 𝐰₂ ∈ ℝᴰ², …, 𝐰ₘ ∈ ℝᴰᵐ
 # -> ω ∈ ℝᴺ, ωᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ᵢ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]]
+# Mathematically, given:
+#     I₁ ∈ ℕᴺ , 𝐰₁ ∈ ℝᴰ¹
+#     I₂ ∈ ℕᴺ , 𝐰₂ ∈ ℝᴰ²
+#     ⋮       , ⋮
+#     Iₘ ∈ ℕᴺ , 𝐰ₘ ∈ ℝᴰᵐ
+# The iᵗʰ term will be computed as:
+#     pᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ⱼ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[j]]
 
 _typeofprod(ws::NTuple{N, Vector{<:Real}}) where {N} = typeof(mapreduce(first, *, ws))
 _typeofprod(ws::NTuple{N, Vector{T}}) where {N} where {T<:Real} = T
@@ -241,21 +253,27 @@ end
 """
     algorithm2_2!(p::Vector{T}, Is::NTuple{M, Vector{Int}}, ws::NTuple{M, Vector{<:Real}}) where {T<:Real, M}
 
-Compute the product of weights selected by the respective index sets `Is`,
-then normalize the resultant weight vector to probabilities, storing the result in `p`.
+Fill `p` with the probabilities that result from normalizing the element-wise product
+of weights selected by the index set, `Is[m]`, respective to each weight vector, `ws[m]`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm2_2`](@ref)
 
 # Examples
 ```jldoctest
-julia> Is = ([1, 2, 3], [4, 5, 6], [7, 8, 9]); ws = ([1,2,3], fill(1/6, 6), fill(1//10, 9));
+julia> Is = ([1,2,3], [4,5,6], [7,8,9]); ws = ([1,2,3], fill(1/6, 6), fill(1//10, 9));
 
 julia> algorithm2_2!(zeros(3), Is, ws)
 3-element Vector{Float64}:
  0.16666666666666666
  0.3333333333333333
  0.5
+
+julia> algorithm2_2!(zeros(Rational{Int}, 3), Is, (ws[1], fill(1//6, 6), ws[3]))
+3-element Vector{Rational{Int64}}:
+ 1//6
+ 1//3
+ 1//2
 ```
 """
 algorithm2_2!(p::Vector{T}, Is::Tuple{Vector{Int}}, ws::Tuple{Vector{<:Real}}) where {T<:Real} = algorithm2_1!(p, (@inbounds Is[1]), (@inbounds ws[1]))
@@ -278,11 +296,11 @@ Iₘ ∈ ℕᴺ , 𝐰ₘ ∈ ℝᴰᵐ
 The iᵗʰ term will be computed as:
 pᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ⱼ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[j]]
 
-See also: [`algorithm2_2!`](@ref)
+See also: [`algorithm2_2!`](@ref), [`algorithm2_1`](@ref)
 
 # Examples
 ```jldoctest
-julia> Is = ([1, 2, 3], [4, 5, 6], [7, 8, 9]); ws = ([1.0, 2.0, 3.0], fill(0.5, 6), fill(0.1, 9));
+julia> Is = ([1,2,3], [4,5,6], [7,8,9]); ws = ([1.0, 2.0, 3.0], fill(0.5, 6), fill(0.1, 9));
 
 julia> algorithm2_2(Is, ws)
 3-element Vector{Float64}:
@@ -454,7 +472,7 @@ julia> algorithm3!(similar(w, Float64), w, u)
  0.5
  0.3125
  0.15625
- 0.0312
+ 0.03125
 ```
 """
 function algorithm3!(p::Vector{S}, w::Vector{T}, u::S) where {S<:Real, T<:Real}
