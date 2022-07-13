@@ -420,7 +420,7 @@ _check_u01(u::S) where {S<:Real} = (zero(S) ≤ u ≤ one(S) || throw(DomainErro
 
 Normalize `p` to probabilities, spreading probability mass `u` across the
 0 or more elements of `p` which are equal to zero. If all values of `w` are zero
-and `u ≠ 0`, `p` will be with uniform probability mass.
+and `u ≠ 0`, `p` will be filled with uniform probability mass.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm3`](@ref), [`algorithm3_ratio!`](@ref)
@@ -460,7 +460,7 @@ algorithm3!(p::Vector{T}, u::S) where {T<:Real, S<:Real} = algorithm3!(p, conver
 
 Normalize `w` to probabilities, storing the result in `p`, spreading probability
 mass `0 ≤ u ≤ 1` across the 0 or more elements of `w` which are equal to zero.
-If all values of `w` are zero and `u ≠ 0`, `p` will be with uniform probability mass.
+If all values of `w` are zero and `u ≠ 0`, `p` will be filled with uniform probability mass.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 # Examples
