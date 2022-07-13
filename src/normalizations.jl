@@ -661,7 +661,7 @@ algorithm3_ratio(p, r) = algorithm3(p, _u(r))
 
 Normalize `w[I]` to probabilities, storing the result in `p`, then spreading probability mass
 `0 ≤ u ≤ 1` across the 0 or more elements of `w[I]` which are equal to zero.
-If all selected values are zero, `p` is filled with `1 / length(p)`.
+If all values of `w[I]` are zero and `u ≠ 0`, `p` will be filled with uniform probability mass.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm2_1_algorithm3`](@ref)
@@ -690,7 +690,8 @@ function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u:
         z += w̃ == zero(T)
     end
     c = z == 0 ? one(S) / s : (one(S) - u) / s
-    u′ = z == length(p) ? one(S) / z : u / z
+    # u′ = z == length(p) ? one(S) / z : u / z
+    u′ = z == length(p) ? u / (u * z) : u / z
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
@@ -705,10 +706,11 @@ algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u::U) where
 
 Return a vector of probabilities, normalizing the components selected from `w` by the
 index set `I`, then spreading the probability mass `0 ≤ u ≤ 1` across the 0 or more
-selected elements which are equal to zero.
-Equivalent to `algorithm3(algorithm2_1(I, w), u)` but more efficient.
+elements which are equal to zero. If all values of `w[I]` are zero and `u ≠ 0`,
+a vector of uniform probability mass is returned.
+Equivalent to `algorithm3!(algorithm2_1(I, w), u)` but more efficient.
 
-See also: [`algorithm2_1_algorithm3!`](@ref)
+See also: [`algorithm2_1_algorithm3!`](@ref), [`algorithm2_1`](@ref), [`algorithm3`](@ref)
 
 # Examples
 ```jldoctest
@@ -721,7 +723,7 @@ julia> algorithm2_1_algorithm3(I, w, u)
  0.25
  0.3333333333333333
 
-julia> algorithm3(algorithm2_1(I, w), u)
+julia> algorithm3!(algorithm2_1(I, w), u)
 4-element Vector{Float64}:
  0.16666666666666666
  0.25
