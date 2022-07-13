@@ -360,8 +360,7 @@ function vsample3!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:
         for Iₛ ∈ a
             n = length(Iₛ)
             vgenerate!(C, U, n)
-            for (j′, j) ∈ enumerate(axes(B, 2))#indices((B, C), (2, 1))#eachindex(axes(B, 2), C)
-            # for j ∈ axes(B, 2)
+            for (j′, j) ∈ enumerate(axes(B, 2))
                 c = C[j′]
                 B[Iₛ[c], j, IR] += one(S)
             end
@@ -386,3 +385,106 @@ function vsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) 
     end
     B
 end
+
+# Oddly, the fastest vsampler is non-allocating -- most likely due to
+# the elimination of store + access instructions associated with using a temporary array.
+function vsample2!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
+    _check_reducedims(B, Iₛ)
+    n = length(Iₛ)
+    # C = vgenerate(n, size(B, 2))
+    @inbounds for j ∈ axes(B, 2)
+        c = generate(n)
+        B[Iₛ[c], j] += one(S)
+    end
+    B
+end
+
+function vsample3!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
+    _check_reducedims(B, Iₛ)
+    n = length(Iₛ)
+    # C = vgenerate(n, size(B, 2))
+    @inbounds @simd ivdep for j ∈ axes(B, 2)
+        c = generate(n)
+        B[Iₛ[c], j] += one(S)
+    end
+    B
+end
+
+################
+# Dimension experiments
+function vsample2_dim1!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
+    _check_reducedims(B, Iₛ)
+    n = length(Iₛ)
+    # C = vgenerate(n, size(B, 2))
+    @inbounds for i ∈ axes(B, 1)
+        c = generate(n)
+        B[i, Iₛ[c]] += one(S)
+    end
+    B
+end
+
+function vsample3_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C, U = _genstorage_init(Float64, size(B, 1))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for Iₛ ∈ a
+            n = length(Iₛ)
+            vgenerate!(C, U, n)
+            for (i′, i) ∈ enumerate(axes(B, 1))
+                c = C[i′]
+                B[i, Iₛ[c], IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+
+# The expected case: vectors of sparse vectors (as their bare components)
+function vsample3_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C, U = _genstorage_init(Float64, size(B, 1))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for (Iₛ, p) ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            vgenerate!(C, U, K, V)
+            for (i′, i) ∈ enumerate(axes(B, 1))
+                c = C[i′]
+                B[i, Iₛ[c], IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+
+
+B = zeros(Int, 10000,10000,1,1,1);
+D = [[rand(1:10000, 2), rand(1:10000, 4), rand(1:10000, 6)] for _ = 1:10, _ = 1:10, _ = 1:10];
+
+@benchmark vsample!($B, $D)
+@benchmark vsample3_dim1!($B, $D)
+
+E = [[(rand(1:10000, 2), normalize1!(rand(2))),
+      (rand(1:10000, 4), normalize1!(rand(4))),
+      (rand(1:10000, 6), normalize1!(rand(4)))] for _ = 1:10, _ = 1:10, _ = 1:10];
+
+@benchmark vsample!($B, $E)
+@benchmark vsample3_dim1!($B, $E)
+
+B1 = zeros(Int, size(B));
+B2 = zeros(Int, size(B));
+vsample!(B1, E);
+vsample3_dim1!(B2, E);
+s1 = sum(B1, dims=2);
+s2 = sum(B2, dims=1);
