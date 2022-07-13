@@ -134,6 +134,143 @@ end
     end
 end
 
+# _alg2_2(Is, ws) = (p = (.*)(getindex.(ws, Is)...); p .* inv(sum(p)))
+
+@testset "algorithm 2.2" begin
+    ws = ([1,2,3], fill(1/6, 6), fill(1//10, 9))
+    ws2 = (ws[1], fill(1//6, 6), ws[3])
+    Is = ([1,2,3], [4,5,6], [7,8,9])
+    p = [1.0]
+    p2 = [1//1]
+    for i ∈ 1:3
+        I = [i]
+        @test @inferred algorithm2_2((I, I, I), ws) == p
+        @test @inferred algorithm2_2((I, I, I), ws2) == p2
+    end
+    p′ = [1/6, 1/3, 1/2]
+    p2′ = [1//6, 1//3, 1//2]
+    @test @inferred algorithm2_2(Is, ws) == p′
+    @test @inferred algorithm2_2(Is, ws2) == p2′
+    # Float products
+    I = [1,2,3]
+    w = fill(1/2,6)
+    for n = 1:10
+        Is = ntuple(_ -> I, n)
+        ws = ntuple(_ -> w, n)
+        p = @inferred algorithm2_2(Is, ws)
+        @test all(p .≈ 1/3)
+    end
+    # Rational products
+    w2 = fill(1//2,6)
+    for n = 1:10
+        Is = ntuple(_ -> I, n)
+        ws = ntuple(_ -> w2, n)
+        p = @inferred algorithm2_2(Is, ws)
+        @test all(p .== 1//3)
+    end
+    # Mixed products
+    w3 = fill(1,6)
+    for n = 2:2:12
+        Is = ntuple(_ -> I, n)
+        ws = tuple(ntuple(_ -> w, n >> 1)..., ntuple(_ -> w2, n >> 1)...)
+        p = @inferred algorithm2_2(Is, ws)
+        @test all(p .≈ 1/3)
+        ws = tuple(ntuple(_ -> w, n >> 1)..., ntuple(_ -> w3, n >> 1)...)
+        p = @inferred algorithm2_2(Is, ws)
+        @test all(p .≈ 1/3)
+        Base.setindex(ws, w2, lastindex(ws))
+        p = @inferred algorithm2_2(Is, ws)
+        @test all(p .≈ 1/3)
+    end
+    # Aberrant behavior
+    @testset "weight < 0" begin
+        w = [-5, 4, 3, 2, 1];
+        I = [1, 5, 2];
+        Is = (I, [1,2,3], [1,2,3])
+        ws = (w, fill(1/6, 6), fill(1//10, 9))
+        @test algorithm2_2(Is, ws) == [-Inf, Inf, Inf]
+        Is = Base.setindex(Is, [2,3,4], 1)
+        @test algorithm2_2(Is, ws) == nextfloat.([4/9, 3/9, 2/9])
+        Is = Base.setindex(Is, [1,2,2], 1)
+        @test algorithm2_2(Is, ws) == [-prevfloat(5/3), 4/3, 4/3]
+    end
+    # zeros behavior
+    w = zeros(5)
+    ws = (w, w, w)
+    I = [1, 2, 3]
+    Is = (I, I, I)
+    @test all(algorithm2_2(Is, ws) .=== [-NaN, -NaN, -NaN])
+    w[3] = 5
+    @test algorithm2_2(Is, ws) == [0.0, 0.0, 1.0]
+
+    @testset "NaN handling (lack thereof)" begin
+        # things which generate NaNs by propagation
+        w = [2.0, 10.0, 5.0, 1.0, NaN]
+        ws = (w, w, w)
+        I = [1, 3, 5]
+        Is = (I, I, I)
+        @test all(algorithm2_2(Is, ws) .=== [NaN, NaN, NaN])
+        I = [1, 5, 5]
+        Is = (I, I, I)
+        @test all(algorithm2_2(Is, ws) .=== [NaN, NaN, NaN])
+        I = [5, 5, 5]
+        Is = (I, I, I)
+        @test all(algorithm2_2(Is, ws) .=== [NaN, NaN, NaN])
+
+        # propagating NaNs with signbit set
+        w = [2.0, 10.0, 5.0, 1.0, -NaN]
+        ws = (w, w, w)
+        I = [1, 3, 5]
+        Is = (I, I, I)
+        @test all(algorithm2_2(Is, ws) .=== [-NaN, -NaN, -NaN])
+        I = [1, 5, 5]
+        Is = (I, I, I)
+        @test all(algorithm2_2(Is, ws) .=== [-NaN, -NaN, -NaN])
+        I = [5, 5, 5]
+        Is = (I, I, I)
+        @test all(algorithm2_2(Is, ws) .=== [-NaN, -NaN, -NaN])
+    end
+
+    @testset "±Inf handling (lack thereof)" begin
+        I = [1, 3, 5]
+        Is = (I, I, I)
+        w = [2.0, 10.0, 5.0, 1.0, Inf]
+        ws = (w, w, w)
+        @test all(algorithm2_2(Is, ws) .=== [0.0, 0.0, -NaN])
+        w = [2.0, 10.0, 5.0, 1.0, prevfloat(Inf)]
+        ws = (w, w, w)
+        p = algorithm2_2(Is, ws)
+        @test all(p .=== [0.0, 0.0, -NaN])
+        @test all(!isinf, p)
+        # integer overflow
+        w = [5, 4, 3, 1, typemax(Int) - 1]
+        ws = (w, w, w)
+        @test algorithm2_2(Is, ws) == [0.8680555555555555, 0.1875, -0.05555555555555555]
+    end
+
+    @testset "sweep precision (SIMD rounding)" begin
+        rng = Xoshiro(0xd123456789abcdef)
+        w = rand(rng, 256)
+        p = Vector{Float64}(undef, 0)
+        for M = 2:5
+            for m = -10:10
+                w .*= 10.0^m
+                ws = ntuple(_ -> w, M)
+                for i = 1:8
+                    for j = -1:1
+                        n = (1 << i) + j
+                        Is = ntuple(_ -> rand(rng, 1:256, n), M)
+                        resize!(p, n)
+                        algorithm2_2!(p, Is, ws)
+                        @test all(!iszero, p)
+                        @test sum(p) ≈ 1.0
+                    end
+                end
+            end
+        end
+    end
+end
+
 @testset "algorithm 3" begin
     w = [0.0, 10.0, 5.0, 0.0, 2.5]
     p = [0.25, 0.2857142857142857, 0.14285714285714285, 0.25, 0.07142857142857142]
