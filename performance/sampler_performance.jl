@@ -284,6 +284,9 @@ sum(length, Z) * 6 * size(B, 2)
 # make performance worse for any reasonable number of categories.
 # Moreover, the random nature of the memory location being written to makes it an unsafe
 # operation -- silent problems, but corrupted memory nonetheless.
+## Addendum
+# Memory would not be corrupted as each `j`-index is unique.
+
 function vsample2!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -326,7 +329,60 @@ A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]];
 D = fill(A, 10,10,10);
 B = vsample(Int, D, 10000, dims=(1,3));
 
+
 @benchmark vsample!($B, $D)
 @benchmark vsample2!($B, $D)
+@benchmark vsample3!($B, $D)
 
 vsample2!(B, D);
+
+@timev vsample!(B, Z);
+@timev vsample2!(B, Z);
+
+#
+OB = OffsetArray(B, 1:6, 0:9999, 1:1, 1:1, 1:1);
+vsample3!(OB, D);
+
+OB2 = OffsetArray(B, 1:6, -5000:4999, 1:1, 1:1, 1:1);
+vsample3!(OB2, D)
+
+OB3 = OffsetArray(B, 1:6, 0:9999, 0:0, 0:0, 2:2);
+vsample3!(OB3, D)
+
+# much worse with @simd ivdep
+function vsample3!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C, U = _genstorage_init(Float64, size(B, 2))
+    for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for Iₛ ∈ a
+            n = length(Iₛ)
+            vgenerate!(C, U, n)
+            for (j′, j) ∈ enumerate(axes(B, 2))#indices((B, C), (2, 1))#eachindex(axes(B, 2), C)
+            # for j ∈ axes(B, 2)
+                c = C[j′]
+                B[Iₛ[c], j, IR] += one(S)
+            end
+        end
+    end
+    B
+end
+
+function vsample3!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    C, U = _genstorage_init(Float64, size(B, 2))
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        Iₛ = A[IA]
+        n = length(Iₛ)
+        vgenerate!(C, U, n)
+        @simd ivdep for j ∈ eachindex(axes(B, 2), C)
+            c = C[j]
+            B[Iₛ[c], j, IR] += one(S)
+        end
+    end
+    B
+end
