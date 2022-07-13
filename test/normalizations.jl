@@ -20,6 +20,8 @@ end
     @test _u(1//1) === 1//2
     @test _u(0) === 0.0
     @test _u(Inf) === 1.0
+    @test _u(-1) === -Inf
+    @test _u(-Inf) === -NaN
     for T ∈ (Int64, UInt, Float64, BigInt, BigFloat, Rational{Int})
         @test_nowarn _check_u01(zero(T))
         @test_nowarn _check_u01(one(T))
