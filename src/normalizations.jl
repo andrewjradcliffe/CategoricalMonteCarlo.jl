@@ -283,15 +283,16 @@ algorithm2_2!(p::Vector{T}, Is::Tuple{Vector{Int}}, ws::Tuple{Vector{<:Real}}) w
 
 Compute the product of weights selected by the respective index sets `Is`,
 then normalize the resultant weight vector to probabilities.
+
 Mathematically, given:
 
-I₁ ∈ ℕᴺ , 𝐰₁ ∈ ℝᴰ¹
+I₁ ∈ ℕᴺ , 𝐰₁ ∈ ℝᴰ¹,     0 ≤ 𝐰₁ᵢ < Inf, i ∈ I₁
 
-I₂ ∈ ℕᴺ , 𝐰₂ ∈ ℝᴰ²
+I₂ ∈ ℕᴺ , 𝐰₂ ∈ ℝᴰ²,     0 ≤ 𝐰₂ᵢ < Inf, i ∈ I₂
 
 ⋮       , ⋮
 
-Iₘ ∈ ℕᴺ , 𝐰ₘ ∈ ℝᴰᵐ
+Iₘ ∈ ℕᴺ , 𝐰ₘ ∈ ℝᴰᵐ,     0 ≤ 𝐰ₘᵢ < Inf, i ∈ Iₘ
 
 The iᵗʰ term will be computed as:
 pᵢ = ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[i]] / ∑ⱼ₌₁ᴺ ∏ₘ₌₁ᴹ 𝐰ₘ[Iₘ[j]]
@@ -647,15 +648,15 @@ algorithm3_ratio(p, r) = algorithm3(p, _u(r))
 ################
 
 #### Algorithm 2.1. + Algorithm 3. (fused)
-
 # A weight is assigned to i = 1,…,k components, and there are unknown components k+1,…,N.
 # The unknown components are of the same category, and the probability mass of the category is
 # known; alternatively, the ratio (between unknown/known) of probability masses may be specified.
-# r = unknown/known = (∑ᵢ₌ₖ₊₁ᴺ pᵢ) / ∑ᵢ₌₁ᵏ pᵢ = (∑ᵢ₌ₖ₊₁ᴺ wᵢ) / ∑ᵢ₌₁ᵏ wᵢ ⟹
-# r∑ᵢ₌₁ᵏ wᵢ = ∑ᵢ₌ₖ₊₁ᴺ wᵢ ⟹ r∑ᵢ₌₁ᵏ = w′, wᵢ = w′ / (N - k), i=k+1,…,N
-# r = u / (1 - u) ⟹ u = r / (1 + r) ⟹
+# r = unknown/known = (∑ᵢ₌ₖ₊₁ᴺ pᵢ) / ∑ᵢ₌₁ᵏ pᵢ = (∑ᵢ₌ₖ₊₁ᴺ wᵢ) / ∑ᵢ₌₁ᵏ wᵢ    ⟹
+# r∑ᵢ₌₁ᵏ wᵢ = ∑ᵢ₌ₖ₊₁ᴺ wᵢ    ⟹    r∑ᵢ₌₁ᵏ = w′, wᵢ = w′ / (N - k), i=k+1,…,N
+# r = u / (1 - u)    ⟹    u = r / (1 + r)    ⟹
 # pᵢ = u / (N - k), i=k+1,…,N
 # pᵢ = (1 - u) wᵢ / ∑ᵢ₌₁ᵏ wᵢ, i = 1,…,k
+
 """
     algorithm2_1_algorithm3!(p::Vector{T}, I::Vector{Int}, w::Vector{<:Real}, u::Real) where {T<:Real}
 
@@ -695,7 +696,6 @@ function algorithm2_1_algorithm3!(p::Vector{S}, I::Vector{Int}, w::Vector{T}, u:
     @inbounds @simd for i ∈ eachindex(p)
         pᵢ = p[i]
         p[i] = pᵢ == zero(S) ? u′ : pᵢ * c
-        # p[i] = ifelse(pᵢ == zero(S), u′, pᵢ * c)
     end
     p
 end
@@ -740,19 +740,6 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:R
 # A weight is assigned to each i, and the w₁'s are normalized to probabilities.
 # Then, a subset of the i's, denoted I′, is selected for re-weighting by a quantity
 # which is undefined for I ∖ I′.
-# w₁ ∈ ℝᴰ : the weight assigned to each i for the normalization of probabilities
-# w₂ ∈ ℝᴺ : the quantity which is undefined for I ∖ I′; undefined shall be encoded
-# by a value of zero.
-# pᵢ = w₁ᵢ / ∑ₗ₌₁ᴺ w₁ₗ, i ∈ I ∖ I′
-# mᵏⁿᵒʷⁿ = ∑ᵢ pᵢ, i ∈ I ∖ I′
-# mᵘⁿᵈᵉᶠⁱⁿᵉᵈ = 1 - mᵏⁿᵒʷⁿ = (∑ᵢ w₁ᵢ, i ∈ I′) / ∑ₗ₌₁ᴺ w₁ₗ
-# pᵢ = mᵘⁿᵈᵉᶠⁱⁿᵉᵈ * w₂ᵢ / ∑ₗ₌₁ᴺ w₂ₗ, i ∈ I′
-# In other words,
-# pᵢ = (w₂ᵢ * ∑ₗ w₁ₗ, i ∈ I ∖ I′) / (∑ₗ₌₁ᴺ w₂ₗ * ∑ₗ₌₁ᴺ w₁ₗ)
-
-# A weight is assigned to each i, and the w₁'s are normalized to probabilities.
-# Then, a subset of the i's, denoted I′, is selected for re-weighting by a quantity
-# which is undefined for I ∖ I′.
 # I = {1,…,N}
 # J₁ = {i: 𝐰₁ᵢ = 0}    I₁′ = {i: 𝐰₁ᵢ ≠ 0} = I ∖ J₁
 # J₂ = {i: 𝐰₂ᵢ = 0}    I₂′ = {i: 𝐰₂ᵢ ≠ 0} = I ∖ J₂
@@ -785,8 +772,7 @@ algorithm2_1_algorithm3(I::Vector{Int}, w::Vector{T}, u::S) where {T<:Real, S<:R
 """
     algorithm4!(𝐰₁::Vector{T}, 𝐰₂::Vector{<:Real}) where {T<:Real}
 
-Fill `𝐰₁` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`; refer to the
-respective documentation for a description of `algorithm4`.
+Fill `𝐰₁` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
 
 See also: [`algorithm4`](@ref)
@@ -817,11 +803,8 @@ end
 """
     algorithm4!(p::Vector{T}, 𝐰₁::Vector{<:Real}, 𝐰₂::Vector{<:Real}) where {T<:Real}
 
-Fill `p` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`; refer to the
-respective documentation for a description of `algorithm4`.
+Fill `p` with the probabilities which result from `algorithm4(𝐰₁, 𝐰₂)`.
 Note that `T` must be a type which is able to hold the result of `inv(one(T))`.
-
-See also: [`algorithm4`](@ref)
 """
 function algorithm4!(p::Vector{S}, w₁::Vector{T}, w₂::Vector{U}) where {S<:Real, T<:Real, U<:Real}
     s₁′ = zero(T)
@@ -852,7 +835,7 @@ end
 """
     algorithm4(𝐰₁::Vector{<:Real}, 𝐰₂::Vector{<:Real})
 
-Return a vector of probabilities by constructed according to the following algorithm:
+Return a vector of probabilities constructed according to the following algorithm:
 
 Define:
 
