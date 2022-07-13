@@ -161,7 +161,7 @@ function algorithm2_1!(p::Vector{T}, I::Vector{Int}, w::Vector{S}) where {T<:Rea
     @inbounds @simd for i ∈ eachindex(p)
         p[i] *= c
     end
-    return p
+    p
 end
 
 """
