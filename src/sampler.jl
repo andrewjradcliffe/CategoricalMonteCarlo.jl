@@ -61,8 +61,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
-            for j ∈ axes(B, 2)
-                c = C[j]
+            for (j′, j) ∈ enumerate(axes(B, 2))
+                c = C[j′]
                 B[Iₛ[c], j, IR] += one(S)
             end
         end
@@ -84,8 +84,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
-        for j ∈ axes(B, 2)
-            c = C[j]
+        for (j′, j) ∈ enumerate(axes(B, 2))
+            c = C[j′]
             B[Iₛ[c], j, IR] += one(S)
         end
     end
@@ -106,8 +106,8 @@ function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {
     Iₛ, p = A
     K, V = sqhist(p)
     C = generate(K, V, size(B, 2))
-    @inbounds for j ∈ axes(B, 2)
-        c = C[j]
+    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
+        c = C[j′]
         B[Iₛ[c], j] += one(S)
     end
     B
@@ -126,8 +126,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
         for Iₛ ∈ a
             n = length(Iₛ)
             generate!(C, U, n)
-            for j ∈ axes(B, 2)
-                c = C[j]
+            for (j′, j) ∈ enumerate(axes(B, 2))
+                c = C[j′]
                 B[Iₛ[c], j, IR] += one(S)
             end
         end
@@ -145,8 +145,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) wh
         Iₛ = A[IA]
         n = length(Iₛ)
         generate!(C, U, n)
-        for j ∈ axes(B, 2)
-            c = C[j]
+        for (j′, j) ∈ enumerate(axes(B, 2))
+            c = C[j′]
             B[Iₛ[c], j, IR] += one(S)
         end
     end
@@ -165,8 +165,8 @@ function sample!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
     _check_reducedims(B, Iₛ)
     n = length(Iₛ)
     C = generate(n, size(B, 2))
-    @inbounds for j ∈ axes(B, 2)
-        c = C[j]
+    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
+        c = C[j′]
         B[Iₛ[c], j] += one(S)
     end
     B
@@ -188,8 +188,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
-            for j ∈ axes(B, 2)
-                c = C[j]
+            for (j′, j) ∈ enumerate(axes(B, 2))
+                c = C[j′]
                 B[c, j, IR] += one(S)
             end
         end
@@ -211,8 +211,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) wher
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
-        for j ∈ axes(B, 2)
-            c = C[j]
+        for (j′, j) ∈ enumerate(axes(B, 2))
+            c = C[j′]
             B[c, j, IR] += one(S)
         end
     end
@@ -232,8 +232,8 @@ function sample!(B::AbstractMatrix{S}, A::Vector{T}) where {S<:Real} where {T<:A
     _check_reducedims(B, A)
     K, V = sqhist(A)
     C = generate(K, V, size(B, 2))
-    @inbounds for j ∈ axes(B, 2)
-        c = C[j]
+    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
+        c = C[j′]
         B[c, j] += one(S)
     end
     B
@@ -257,8 +257,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
-            for j ∈ axes(B, 2)
-                c = C[j]
+            for (j′, j) ∈ enumerate(axes(B, 2))
+                c = C[j′]
                 B[Iₛ[c], j, IR] += one(S)
             end
         end
@@ -281,8 +281,8 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
-        for j ∈ axes(B, 2)
-            c = C[j]
+        for (j′, j) ∈ enumerate(axes(B, 2))
+            c = C[j′]
             B[Iₛ[c], j, IR] += one(S)
         end
     end
@@ -304,8 +304,8 @@ function sample!(B::AbstractMatrix{S}, A::SparseVector{T}) where {S<:Real} where
     Iₛ, p = A.nzind, A.nzval
     K, V = sqhist(p)
     C = generate(K, V, size(B, 2))
-    @inbounds for j ∈ axes(B, 2)
-        c = C[j]
+    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
+        c = C[j′]
         B[Iₛ[c], j] += one(S)
     end
     B
