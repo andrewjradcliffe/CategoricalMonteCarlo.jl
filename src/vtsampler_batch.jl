@@ -7,22 +7,42 @@
 # mirror of sampler.jl; separate file for variants on threading
 
 # The bare minimum for `sample` interface-- covers all 4 other definitions.
-vtsample(::Type{S}, A, n_sim, n_cat; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, n_cat, dims, chunksize)
-vtsample(::Type{S}, A, n_sim; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, num_cat(A), dims, chunksize)
-vtsample(::Type{S}, A, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S} = vtsample(S, A, n_sim, n_cat, (dims,), chunksize)
+# vtsample(::Type{S}, A, n_sim, n_cat; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, n_cat, dims, chunksize)
+# vtsample(::Type{S}, A, n_sim; dims=:, chunksize=5000) where {S} = vtsample(S, A, n_sim, num_cat(A), dims, chunksize)
+# vtsample(::Type{S}, A, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S} = vtsample(S, A, n_sim, n_cat, (dims,), chunksize)
 
-function vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}, chunksize::Int) where {S<:Real} where {P} where {T, N}
+# function vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}, chunksize::Int) where {S<:Real} where {P} where {T, N}
+#     Dᴬ = size(A)
+#     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+#     B = fill!(similar(A, S, Dᴮ), zero(S))
+#     vtsample!(B, A, chunksize)
+# end
+
+# function vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T, N}
+#     B = fill!(similar(A, S, (n_cat, n_sim)), zero(S))
+#     vtsample!(B, A, chunksize)
+# end
+
+#### A revised public interface
+vtsample(::Type{S}, A, n_sim; dims=:, n_cat=nothing, chunksize=5000) where {S<:Real} = _vtsample(S, A, n_sim, n_cat, dims, chunksize)
+vtsample(A, n_sim; dims=:, n_cat=nothing, chunksize=5000) = _vtsample(Int, A, n_sim, n_cat, dims, chunksize)
+
+_vtsample(::Type{S}, A, n_sim, n_cat::Int, dims::Int, chunksize) where {S<:Real} = _vtsample(S, A, n_sim, n_cat, (dims,), chunksize)
+_vtsample(::Type{S}, A, n_sim, ::Nothing, dims, chunksize) where {S<:Real} = _vtsample(S, A, n_sim, num_cat(A), dims, chunksize)
+
+function _vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}, chunksize::Int) where {S<:Real} where {P} where {T, N}
     Dᴬ = size(A)
     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     vtsample!(B, A, chunksize)
 end
 
-function vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T, N}
+function _vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T, N}
     B = fill!(similar(A, S, (n_cat, n_sim)), zero(S))
     vtsample!(B, A, chunksize)
 end
 
+####
 vtsample!(B, A; chunksize::Int=5000) = vtsample!(B, A, chunksize)
 function vtsample!(B, A, chunksize::Int)
     _check_reducedims(B, A)
@@ -34,6 +54,7 @@ function vtsample!(B, A, chunksize::Int)
     return B
 end
 
+################
 # The expected case: vectors of sparse vectors (as their bare components)
 function _vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     C, U = _genstorage_init(Float64, length(𝒥))
@@ -80,15 +101,14 @@ function _vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vecto
 end
 
 # The simplest case: a sparse vector
-vtsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} = vtsample(S, A, n_sim, n_cat, :, chunksize)
-vtsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = vtsample(S, A, n_sim, n_cat, :, chunksize)
-
-function vtsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T<:AbstractFloat}
+_vtsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+_vtsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+function _vtsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_cat, n_sim)
     vtsample!(B, A, chunksize)
 end
 
-function vtsample!(B::AbstractMatrix, A::Tuple{Vector{Int}, Vector{<:AbstractFloat}}, chunksize::Int)
+function vtsample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{<:AbstractFloat}}, chunksize::Int) where {S<:Real}
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
@@ -154,12 +174,14 @@ function _vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}
 end
 
 # The simplest case: a sparse vector
-function vtsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {N}
+_vtsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+_vtsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {N} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+function _vtsample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real}
     B = zeros(S, n_cat, n_sim)
     vtsample!(B, A, chunksize)
 end
 
-function vtsample!(B::AbstractMatrix, A::Vector{Int}, chunksize::Int)
+function vtsample!(B::AbstractMatrix{S}, A::Vector{Int}, chunksize::Int) where {S<:Real}
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
@@ -226,15 +248,14 @@ function _vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, 
 end
 
 # The simplest case: a dense vector
-vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} = vtsample(S, A, n_sim, n_cat, :, chunksize)
-vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = vtsample(S, A, n_sim, n_cat, :, chunksize)
-
-function vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T<:AbstractFloat}
+_vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+_vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+function _vtsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_cat, n_sim)
     vtsample!(B, A, chunksize)
 end
 
-function vtsample!(B::AbstractMatrix, A::Vector{T}, chunksize::Int) where {T<:AbstractFloat}
+function vtsample!(B::AbstractMatrix{S}, A::Vector{T}, chunksize::Int) where {S<:Real, T<:AbstractFloat}
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
@@ -303,15 +324,14 @@ function _vsample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVecto
 end
 
 # The simplest case: a sparse vector
-vtsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} = vtsample(S, A, n_sim, n_cat, :, chunksize)
-vtsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = vtsample(S, A, n_sim, n_cat, :, chunksize)
-
-function vtsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T<:AbstractFloat}
+_vtsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::Int, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+_vtsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}, chunksize::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = _vtsample(S, A, n_sim, n_cat, :, chunksize)
+function _vtsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, ::Colon, chunksize::Int) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_cat, n_sim)
     vtsample!(B, A, chunksize)
 end
 
-function vtsample!(B::AbstractMatrix, A::SparseVector{<:AbstractFloat}, chunksize::Int)
+function vtsample!(B::AbstractMatrix{S}, A::SparseVector{<:AbstractFloat}, chunksize::Int) where {S<:Real}
     _check_reducedims(B, A)
     rs = splitranges(firstindex(B, 2):lastindex(B, 2), chunksize)
     @batch for r in rs
