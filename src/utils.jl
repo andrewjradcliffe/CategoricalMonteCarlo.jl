@@ -5,59 +5,58 @@
 #
 ############################################################################################
 # Conveniences
+const _mni64 = typemin(Int)
+const _mxi64 = typemax(Int)
+
 _maximum_maybe(x::AbstractVector{T}) where {T<:Integer} = isempty(x) ? zero(T) : maximum(x)
 _maximum_maybe((x, y)::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(x)
 
 num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} =
-    isempty(A) ? 0 : maximum(num_cat, A, init=0)
+    isempty(A) ? 0 : maximum(num_cat, A, init=_mni64)
 num_cat(A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {T<:AbstractFloat, N} =
-    isempty(A) ? 0 : maximum(_maximum_maybe, A, init=0)
+    isempty(A) ? 0 : maximum(_maximum_maybe, A, init=_mni64)
 num_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(A)
 
 num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} where {M} =
-    isempty(A) ? 0 : maximum(num_cat, A, init=0)
+    isempty(A) ? 0 : maximum(num_cat, A, init=_mni64)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} =
-    isempty(A) ? 0 : maximum(_maximum_maybe, A, init=0)
+    isempty(A) ? 0 : maximum(_maximum_maybe, A, init=_mni64)
 num_cat(A::Vector{Int}) = _maximum_maybe(A)
 
 num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} =
-    isempty(A) ? 0 : maximum(num_cat, A, init=0)
+    isempty(A) ? 0 : maximum(num_cat, A, init=_mni64)
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} =
-    isempty(A) ? 0 : maximum(length, A, init=0)
+    isempty(A) ? 0 : maximum(length, A, init=_mni64)
 num_cat(A::Vector{T}) where {T<:AbstractFloat} = length(A)
 
 num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} =
-    isempty(A) ? 0 : maximum(num_cat, A, init=0)
+    isempty(A) ? 0 : maximum(num_cat, A, init=_mni64)
 num_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} =
-    isempty(A) ? 0 : maximum(length, A, init=0)
+    isempty(A) ? 0 : maximum(length, A, init=_mni64)
 num_cat(A::SparseVector{Tv, Ti}) where {Tv<:AbstractFloat, Ti<:Integer} = length(A)
 
 _minimum_maybe(x::AbstractVector{T}) where {T<:Integer} = isempty(x) ? one(T) : minimum(x)
 _minimum_maybe((x, y)::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _minimum_maybe(x)
 
 num_cat_min(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} =
-    isempty(A) ? 1 : minimum(num_cat_min, A, init=1)
+    isempty(A) ? 1 : minimum(num_cat_min, A, init=_mxi64)
 num_cat_min(A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {T<:AbstractFloat, N} =
-    isempty(A) ? 1 : minimum(_minimum_maybe, A, init=1)
+    isempty(A) ? 1 : minimum(_minimum_maybe, A, init=_mxi64)
 num_cat_min(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _minimum_maybe(A)
 
 num_cat_min(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} where {M} =
-    isempty(A) ? 1 : minimum(num_cat_min, A, init=1)
+    isempty(A) ? 1 : minimum(num_cat_min, A, init=_mxi64)
 num_cat_min(A::AbstractArray{Vector{Int}, N}) where {N} =
-    isempty(A) ? 1 : minimum(_minimum_maybe, A, init=1)
+    isempty(A) ? 1 : minimum(_minimum_maybe, A, init=_mxi64)
 num_cat_min(A::Vector{Int}) = _minimum_maybe(A)
 
-num_cat_min(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} =
-    isempty(A) ? 1 : minimum(num_cat_min, A, init=1)
-num_cat_min(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} =
-    isempty(A) ? 1 : minimum(length, A, init=1)
-num_cat_min(A::Vector{T}) where {T<:AbstractFloat} = length(A)
+num_cat_min(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = 1
+num_cat_min(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = 1
+num_cat_min(A::Vector{T}) where {T<:AbstractFloat} = 1
 
-num_cat_min(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} =
-    isempty(A) ? 1 : minimum(num_cat_min, A, init=1)
-num_cat_min(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} =
-    isempty(A) ? 1 : minimum(length, A, init=1)
-num_cat_min(A::SparseVector{Tv, Ti}) where {Tv<:AbstractFloat, Ti<:Integer} = length(A)
+num_cat_min(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} = 1
+num_cat_min(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} = 1
+num_cat_min(A::SparseVector{Tv, Ti}) where {Tv<:AbstractFloat, Ti<:Integer} = 1
 
 ####
 # _extrema_maybe(x::AbstractVector{T}) where {T<:Real} = isempty(x) ? (zero(T), zero(T)) : extrema(x)
