@@ -150,17 +150,4 @@ end
     B = [a1, a2, a3]
     A = first.(B)
     @test bounds_cat(B) == (308, 9999)
-
-    ea = extrema.(A)
-    _extrema_maybe.(A)
-    mn0 = (1,1)
-    mx0 = (0,0)
-    isgreater(mn0, ea[1])
-    extrema(((x,y),) -> (y-x, x, y), ea)
-    g((x,y)) = (y - x, x, y) # then it just becomes the greatest distance
-    extrema(g ∘ _extrema_maybe, A, init=((0,1,1), (0,0,0)))
-    extrema(g ∘ bounds_cat, B, init=((0,1,1), (0,0,0)))
-    C = first.(B)
-    C[2][4] = 0
-    extrema(g ∘ _extrema_maybe, C, init=((0,1,1), (0,0,0)))
 end
