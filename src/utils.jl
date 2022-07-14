@@ -7,21 +7,21 @@
 # Conveniences
 _maximum_maybe(x::AbstractVector{T}) where {T<:Real} = isempty(x) ? zero(T) : maximum(x)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} = maximum(num_cat, A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
 num_cat(A::AbstractArray{T, N}) where {T<:Tuple{Vector{Int}, Vector{<:AbstractFloat}}, N} =
     maximum(num_cat, A, init=0)
 num_cat(A::Tuple{Vector{Int}, Vector{T}}) where {T<:AbstractFloat} = _maximum_maybe(A[1])
 
 num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{Int}, M}, N} where {M} =
-    maximum(num_cat, A, init=0)
+    maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
 num_cat(A::AbstractArray{Vector{Int}, N}) where {N} = maximum(_maximum_maybe, A, init=0)
 num_cat(A::Vector{Int}) = _maximum_maybe(A)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(num_cat, A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M} = maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
 num_cat(A::AbstractArray{Vector{T}, N}) where {T<:AbstractFloat, N} = maximum(length, A, init=0)
 num_cat(A::Vector{T}) where {T<:AbstractFloat} = length(A)
 
-num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} = maximum(num_cat, A, init=0)
+num_cat(A::AbstractArray{R, N}) where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M} = maximum(a -> maximum(_maximum_maybe, a, init=0), A, init=0)
 num_cat(A::AbstractArray{SparseVector{Tv, Ti}, N}) where {Tv<:AbstractFloat, Ti<:Integer, N} =
     maximum(length, A, init=0)
 num_cat(A::SparseVector{T}) where {T<:AbstractFloat} = length(A)
