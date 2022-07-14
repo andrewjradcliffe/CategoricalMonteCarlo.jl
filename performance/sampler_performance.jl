@@ -428,6 +428,39 @@ end
 # Notably, for most practical applications, number of categories is probably sufficient to
 # make it a wash. Nonetheless, it is interesting to verify the theoretical prediction
 # of superior performance when placing simulation index on first dimension.
+#### A second look -- 1ˢᵗ dimension: simulation index, 2ⁿᵈ dimension: category index
+## 1.
+# There are advantages to placing simulations on the 1ˢᵗ dimension when considering
+# scalar reductions, e.g. `+`, `max`, `min`; `mean`, `var` (variations on `mapreducethen`).
+# However, if manipulating a whole simulation, then it is advantageous to place simulations
+# on the 2ⁿᵈ dimension. Whole simulation transformations are more rare than scalar
+# transformations/reductions. Notably, non-scalar transformations/reductions are almost
+# inevitably bespoke affairs due to the difficult nature of a general programming model
+# for non-scalar operations (`mapslices` exists, but `mapsubslices` does not).
+# Thus, most users would invoke scalar operations, and for non-scalar, write their own.
+# It seems important to have the scalar reductions be fast by default, rather than
+# have the non-scalar be fast but rarely used.
+# ∴ If non-scalar transformations/reductions are desired, the burden is on the user
+# to implement them efficiently, either via permuting the dimensions, or some other scheme.
+#     -- Another option is to provide both methods, as constructing the transpose
+#        (1ˢᵗ: category, 2ⁿᵈ: simulation) directly may be useful. --
+## 2.
+# Placing simulation index on the 1ˢᵗ dimension and category index on the 2ⁿᵈ dimension
+# also enables performance gains during sampling, if the data permit.
+# Fundamentally, the performance gain during sampling with 1ˢᵗ: simulation, 2ⁿᵈ: category
+# occurs due to the fact that for a subset of categories, fewer memory blocks are needed
+# in the cache to complete 1,…,N simulations. Conversely, 1ˢᵗ: category, 2ⁿᵈ: simulation
+# guarantees that at least one block must be loaded for each simulation -- a full
+# traversal, with the block loaded on each simulation random by definition.
+# What if the number of categories is large? (under 1ˢᵗ: sim, 2ⁿᵈ: cat)
+#     - In the worse case, all categories are involved, and one is randomly loading
+#       columns -- an equivalent situation to the default under 1ˢᵗ: cat, 2ⁿᵈ: sim.
+#     - Even if the number of categories being sampled is large, if it is some subset
+#       of the total, then less than a full traversal occurs.
+#     ∴ any time n_cat < N_cat, it is better to have simulation index on the 1ˢᵗ dimension.
+##
+# Taken together, these two aspects provide strong motivation for 1ˢᵗ: sim, 2ⁿᵈ: cat.
+################
 function vsample2_dim1!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
     _check_reducedims(B, Iₛ)
     n = length(Iₛ)
