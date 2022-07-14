@@ -412,10 +412,25 @@ end
 
 ################
 # Dimension experiments
+#### Preliminary conclusion
+# As expected, when the number of categories is small, i.e. 𝒪(1), simulation index being
+# on the first dimension presents considerable advantages: ≈ 4x faster than by it being on
+# the second dimension. However, as the number of categories increases to 𝒪(10) (and beyond),
+# there is no difference in performance. Intuitively, this makes sense, as in the case of
+# 𝒪(1) categories the instruction pipelining would be able to recognize that the same
+# few chunks of memory are needed; even if it cannot figure it out, the same couple
+# pieces of memory would always be in the cache simply on the basis of demand.
+# as the number of categories increases, instruction pipelining would assuredly break down,
+# and, regardless, there would be more variability in the memory demand. Consequently,
+# this makes it increasingly unlikely that all require memory might be in the cache
+# at any given time. This implies a scaling with cache size -- if cache permits it,
+# then simulation index on first dimension will be superior. If not, then it's a wash.
+# Notably, for most practical applications, number of categories is probably sufficient to
+# make it a wash. Nonetheless, it is interesting to verify the theoretical prediction
+# of superior performance when placing simulation index on first dimension.
 function vsample2_dim1!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
     _check_reducedims(B, Iₛ)
     n = length(Iₛ)
-    # C = vgenerate(n, size(B, 2))
     @inbounds for i ∈ axes(B, 1)
         c = generate(n)
         B[i, Iₛ[c]] += one(S)
@@ -442,8 +457,6 @@ function vsample3_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where
     B
 end
 
-
-# The expected case: vectors of sparse vectors (as their bare components)
 function vsample3_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
@@ -467,7 +480,38 @@ function vsample3_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where
     B
 end
 
+vtsample_dim1!(B, A; chunksize::Int=5000) = vtsample_dim1!(B, A, chunksize)
+function vtsample_dim1!(B, A, chunksize::Int)
+    _check_reducedims(B, A)
+    keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+    rs = splitranges(firstindex(B, 1):lastindex(B, 1), chunksize)
+    @batch for r in rs
+        _vsample_chunk_dim1!(B, A, keep, default, r)
+    end
+    return B
+end
 
+function _vsample_chunk_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, ℐ::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
+    C, U = _genstorage_init(Float64, length(ℐ))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        for (Iₛ, p) ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            vgenerate!(C, U, K, V)
+            for l ∈ eachindex(C, ℐ)
+                c = C[l]
+                i = ℐ[l]
+                B[i, Iₛ[c], IR] += one(S)
+            end
+        end
+    end
+    return B
+end
 
 B = zeros(Int, 10000,10000,1,1,1);
 D = [[rand(1:10000, 2), rand(1:10000, 4), rand(1:10000, 6)] for _ = 1:10, _ = 1:10, _ = 1:10];
@@ -479,8 +523,14 @@ E = [[(rand(1:10000, 2), normalize1!(rand(2))),
       (rand(1:10000, 4), normalize1!(rand(4))),
       (rand(1:10000, 6), normalize1!(rand(4)))] for _ = 1:10, _ = 1:10, _ = 1:10];
 
+E2 = [[(rand(1:10000, 20), normalize1!(rand(20))),
+      (rand(1:10000, 40), normalize1!(rand(40))),
+      (rand(1:10000, 60), normalize1!(rand(40)))] for _ = 1:10, _ = 1:10, _ = 1:10];
+
 @benchmark vsample!($B, $E)
 @benchmark vsample3_dim1!($B, $E)
+@benchmark vsample!($B, $E2)
+@benchmark vsample3_dim1!($B, $E2)
 
 B1 = zeros(Int, size(B));
 B2 = zeros(Int, size(B));
@@ -488,3 +538,17 @@ vsample!(B1, E);
 vsample3_dim1!(B2, E);
 s1 = sum(B1, dims=2);
 s2 = sum(B2, dims=1);
+
+B1_1 = zeros(Int, 10000,10^5,1,1,1);
+B2_1 = zeros(Int, 10^5, 10000,1,1,1);
+
+@benchmark vsample!($B1_1, $E)
+@benchmark vsample3_dim1!($B2_1, $E)
+@benchmark vsample!($B1_1, $E2)
+@benchmark vsample3_dim1!($B2_1, $E2)
+
+@benchmark vtsample!($B1_1, $E, chunksize=10000)
+@benchmark vtsample_dim1!($B2_1, $E, chunksize=10000)
+@benchmark vtsample!($B1_1, $E2, chunksize=10000)
+@benchmark vtsample_dim1!($B2_1, $E2, chunksize=10000)
+
