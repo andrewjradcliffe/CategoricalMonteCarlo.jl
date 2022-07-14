@@ -99,10 +99,11 @@ end
     @test bounds_cat(A1) == (-1, 6)
     @test bounds_cat(A2) == (1, 7)
     @test bounds_cat(B) == (-1, 7)
+    # emptys
     A3 = [Int[], Int[]]
-    @test bounds_cat(A3) == (0, 0)
+    @test bounds_cat(A3) == (1, 0)
     B3 = [A3, A3]
-    @test bounds_cat(B3) == (0, 0)
+    @test bounds_cat(B3) == (1, 0)
     B4 = [A3, A1]
     @test bounds_cat(B4) == (-1, 6)
     #
@@ -112,10 +113,11 @@ end
     @test bounds_cat(A1) == (-1, 6)
     @test bounds_cat(A2) == (1, 7)
     @test bounds_cat(B) == (-1, 7)
+    # emptys
     A3 = [(Int[], Float64[]), (Int[], Float64[])]
-    @test bounds_cat(A3) == (0, 0)
+    @test bounds_cat(A3) == (1, 0)
     B3 = [A3, A3]
-    @test bounds_cat(B3) == (0, 0)
+    @test bounds_cat(B3) == (1, 0)
     B4 = [A3, A1]
     @test bounds_cat(B4) == (-1, 6)
     #
@@ -125,13 +127,13 @@ end
     @test bounds_cat(A1) == (1, 6)
     @test bounds_cat(A2) == (1, 5)
     @test bounds_cat(B) == (1, 6)
-    @test bounds_cat(Float64[]) == (0, 0)
-    @test bounds_cat([Float64[]]) == (0, 0)
-    @test bounds_cat([[Float64[]]]) == (0, 0)
+    @test bounds_cat(Float64[]) == (1, 0)
+    @test bounds_cat([Float64[]]) == (1, 0)
+    @test bounds_cat([[Float64[]]]) == (1, 0)
     A3 = [Float64[], Float64[]]
-    @test bounds_cat(A3) == (0, 0)
+    @test bounds_cat(A3) == (1, 0)
     B3 = [A3, A3]
-    @test bounds_cat(B3) == (0, 0)
+    @test bounds_cat(B3) == (1, 0)
     B4 = [A3, A1]
     @test bounds_cat(B4) == (1, 6)
     #
@@ -140,4 +142,25 @@ end
     A = [x, SparseVector([0.0, 1.0, 2.0, 0.0]), SparseVector([1.0, 0.0])]
     @test bounds_cat(A) == (1, 6)
     @test bounds_cat([A, A]) == (1, 6)
+    ####
+    # An interesting case
+    a1 = ([9999, 1439], [0.8029133268547554, 0.1970866731452445])
+    a2 = ([9284, 4370, 2965, 1590], [0.10222319762724291, 0.13054189392858026, 0.43245627176252643, 0.3347786366816504])
+    a3 = ([6289, 308, 6378, 7212, 5426, 662], [0.03053777422684849, 0.21452879865837565, 0.6835396454000753, 0.0713937817147005])
+    B = [a1, a2, a3]
+    A = first.(B)
+    @test bounds_cat(B) == (308, 9999)
+
+    ea = extrema.(A)
+    _extrema_maybe.(A)
+    mn0 = (1,1)
+    mx0 = (0,0)
+    isgreater(mn0, ea[1])
+    extrema(((x,y),) -> (y-x, x, y), ea)
+    g((x,y)) = (y - x, x, y) # then it just becomes the greatest distance
+    extrema(g ∘ _extrema_maybe, A, init=((0,1,1), (0,0,0)))
+    extrema(g ∘ bounds_cat, B, init=((0,1,1), (0,0,0)))
+    C = first.(B)
+    C[2][4] = 0
+    extrema(g ∘ _extrema_maybe, C, init=((0,1,1), (0,0,0)))
 end
