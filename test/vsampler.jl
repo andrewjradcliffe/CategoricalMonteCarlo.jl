@@ -8,30 +8,30 @@
                 # # Specialized method for eltype(A)::Array{Vector{Int}}
                 A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
                 B = vsample(Int, A, n_sim, dims=region)
-                @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-                @test all(≥(0), minimum(B, dims=2))
-                @test all(==(3), sum(B, dims=1))
-                @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+                @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+                @test all(≥(0), minimum(B, dims=1))
+                @test all(==(3), sum(B, dims=2))
+                @test all(sum(B, dims=1) .≤ n_sim .* [3 3 2 2 1 1])
                 # # A simplification: an array of sparse vectors
                 A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
                 B = vsample(Int, A, n_sim, dims=region)
-                @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-                @test all(≥(0), minimum(B, dims=2))
-                @test all(==(3), sum(B, dims=(1,3)))
-                @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+                @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+                @test all(≥(0), minimum(B, dims=1))
+                @test all(==(3), sum(B, dims=(2,3)))
+                @test all(sum(B, dims=(1,3)) .≤ n_sim .* [3 3 2 2 1 1])
                 # # The simplest case: a sparse vector
                 A = [1,2,3,4,5,6]
                 B = vsample(Int, A, n_sim, dims=region)
-                @test all(==(1), sum(B, dims=1))
+                @test all(==(1), sum(B, dims=2))
                 A = [1,2,3,4]
                 vsample!(B, A)
-                @test all(==(2), sum(B, dims=1))
-                @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+                @test all(==(2), sum(B, dims=2))
+                @test all(maximum(B, dims=1) .≤ [2 2 2 2 1 1])
                 A = [1,2]
                 vsample!(B, A)
-                @test all(==(3), sum(B, dims=1))
-                @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-                @test all(≥(0), minimum(B, dims=2))
+                @test all(==(3), sum(B, dims=2))
+                @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+                @test all(≥(0), minimum(B, dims=1))
             end
         end
     end
@@ -42,58 +42,58 @@
                  Float16, Float32, Float64, BigFloat, BigInt, Rational]
             A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
             B = @inferred vsample(T, A, n_sim)
-            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-            @test all(≥(0), minimum(B, dims=2))
-            @test all(==(3), sum(B, dims=1))
-            @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+            @test all(≥(0), minimum(B, dims=1))
+            @test all(==(3), sum(B, dims=2))
+            @test all(sum(B, dims=1) .≤ n_sim .* [3 3 2 2 1 1])
             @test_throws MethodError vsample(Complex{T}, A, n_sim)
             A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
             B = @inferred vsample(T, A, n_sim)
-            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-            @test all(≥(0), minimum(B, dims=2))
-            @test all(==(3), sum(B, dims=(1,3)))
-            @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+            @test all(≥(0), minimum(B, dims=1))
+            @test all(==(3), sum(B, dims=(2,3)))
+            @test all(sum(B, dims=(1,3)) .≤ n_sim .* [3 3 2 2 1 1])
             @test_throws MethodError vsample(Complex{T}, A, n_sim)
             A = [1,2,3,4,5,6]
             B = @inferred vsample(T, A, n_sim)
-            @test all(==(1), sum(B, dims=1))
+            @test all(==(1), sum(B, dims=2))
             A = [1,2,3,4]
             vsample!(B, A)
-            @test all(==(2), sum(B, dims=1))
-            @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+            @test all(==(2), sum(B, dims=2))
+            @test all(maximum(B, dims=1) .≤ [2 2 2 2 1 1])
             A = [1,2]
             vsample!(B, A)
-            @test all(==(3), sum(B, dims=1))
-            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=2))
+            @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+            @test all(≥(0), minimum(B, dims=1))
             @test_throws MethodError vsample(Complex{T}, A, n_sim)
         end
         # Composite numeric types
         for T ∈ [Int8, Int16, Int32, Int64, Int128, UInt8, UInt16, UInt32, UInt64, UInt128]
             A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
             B = @inferred vsample(Rational{T}, A, n_sim)
-            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-            @test all(≥(0), minimum(B, dims=2))
-            @test all(==(3), sum(B, dims=1))
-            @test all(sum(B, dims=2) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+            @test all(≥(0), minimum(B, dims=1))
+            @test all(==(3), sum(B, dims=2))
+            @test all(sum(B, dims=1) .≤ n_sim .* [3 3 2 2 1 1])
             A = [[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]
             B = @inferred vsample(Rational{T}, A, n_sim)
-            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-            @test all(≥(0), minimum(B, dims=2))
-            @test all(==(3), sum(B, dims=(1,3)))
-            @test all(sum(B, dims=(2,3)) .≤ n_sim .* [3; 3; 2; 2; 1; 1])
+            @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+            @test all(≥(0), minimum(B, dims=1))
+            @test all(==(3), sum(B, dims=(2,3)))
+            @test all(sum(B, dims=(1,3)) .≤ n_sim .* [3 3 2 2 1 1])
             A = [1,2,3,4,5,6]
             B = @inferred vsample(Rational{T}, A, n_sim)
-            @test all(==(1), sum(B, dims=1))
+            @test all(==(1), sum(B, dims=2))
             A = [1,2,3,4]
             vsample!(B, A)
-            @test all(==(2), sum(B, dims=1))
-            @test all(maximum(B, dims=2) .≤ [2; 2; 2; 2; 1; 1])
+            @test all(==(2), sum(B, dims=2))
+            @test all(maximum(B, dims=1) .≤ [2 2 2 2 1 1])
             A = [1,2]
             vsample!(B, A)
-            @test all(==(3), sum(B, dims=1))
-            @test all(maximum(B, dims=2) .≤ [3; 3; 2; 2; 1; 1])
-            @test all(≥(0), minimum(B, dims=2))
+            @test all(==(3), sum(B, dims=2))
+            @test all(maximum(B, dims=1) .≤ [3 3 2 2 1 1])
+            @test all(≥(0), minimum(B, dims=1))
         end
         # Real, AbstractFloat, Integer, Signed, Unsigned. work but should be avoided
         A = [[[1, 2], [1, 2, 3, 4], [1, 2, 3, 4, 5, 6]]]
