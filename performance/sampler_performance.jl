@@ -629,7 +629,6 @@ n_cat, n_sim = 10^3, 10^5
 B_dim2 = zeros(Int, n_cat, n_sim, 1, 1, 1);
 B_dim1 = zeros(Int, n_sim, n_cat, 1, 1, 1);
 
-
 @benchmark vtsample!($B_dim2, $D, chunksize=10000)
 @benchmark vtsample_dim1!($B_dim1, $D, chunksize=10000)
 @benchmark vtsample!($B_dim2, $E, chunksize=10000)
@@ -637,11 +636,30 @@ B_dim1 = zeros(Int, n_sim, n_cat, 1, 1, 1);
 @benchmark vtsample!($B_dim2, $E2, chunksize=10000)
 @benchmark vtsample_dim1!($B_dim1, $E2, chunksize=10000)
 
-B_dim2 .= 0;
-B_dim1 .= 0;
+@benchmark vtsample!($B_dim2, $D, chunksize=5000)
+@benchmark vtsample_dim1!($B_dim1, $D, chunksize=5000)
+@benchmark vtsample!($B_dim2, $E, chunksize=5000)
+@benchmark vtsample_dim1!($B_dim1, $E, chunksize=5000)
+@benchmark vtsample!($B_dim2, $E2, chunksize=5000)
+@benchmark vtsample_dim1!($B_dim1, $E2, chunksize=5000)
 
-vtsample!(B_dim2, E2, chunksize=10000);
-vtsample_dim1!(B_dim1, E2, chunksize=10000);
+n_cat, n_sim = 10^4, 10^5
+B_dim2 = zeros(Int, n_cat, n_sim, 1, 1, 1);
+B_dim1 = zeros(Int, n_sim, n_cat, 1, 1, 1);
+
+# @benchmark vtsample!($B_dim2, $D, chunksize=10000)
+# @benchmark vtsample_dim1!($B_dim1, $D, chunksize=10000)
+@benchmark vtsample!($B_dim2, $E, chunksize=10000)
+@benchmark vtsample_dim1!($B_dim1, $E, chunksize=10000)
+@benchmark vtsample!($B_dim2, $E2, chunksize=10000)
+@benchmark vtsample_dim1!($B_dim1, $E2, chunksize=10000)
+
+# @benchmark vtsample!($B_dim2, $D, chunksize=5000)
+# @benchmark vtsample_dim1!($B_dim1, $D, chunksize=5000)
+@benchmark vtsample!($B_dim2, $E, chunksize=5000)
+@benchmark vtsample_dim1!($B_dim1, $E, chunksize=5000)
+@benchmark vtsample!($B_dim2, $E2, chunksize=5000)
+@benchmark vtsample_dim1!($B_dim1, $E2, chunksize=5000)
 
 
 # @turbo on the additions: small speed gain, but more temporaries -- probably not worth
