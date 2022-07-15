@@ -99,7 +99,7 @@ end
 @noinline function _check_reducedims(B, A)
     Rdims = axes(B)[3:end]
     lb, ub = bounds_cat(A)
-    _checkindex_reducedims(axes(B, 1), lb, ub)
+    _checkindex_reducedims(axes(B, 2), lb, ub)
     length(Rdims) ≤ ndims(A) || throw(DimensionMismatch("cannot reduce $(ndims(A))-dimensional array to $(length(Rdims)) trailing dimensions"))
     for i ∈ eachindex(Rdims)
         Ri, Ai = Rdims[i], axes(A, i)
@@ -111,7 +111,7 @@ end
 for Tₐ ∈ (Tuple{Vector{Int}, Vector{<:AbstractFloat}}, Vector{Int}, Vector{<:AbstractFloat}, SparseVector{<:AbstractFloat})
     @eval @noinline function _check_reducedims(B, A::$Tₐ)
         lb, ub = bounds_cat(A)
-        _checkindex_reducedims(axes(B, 1), lb, ub)
+        _checkindex_reducedims(axes(B, 2), lb, ub)
         true
     end
 end
