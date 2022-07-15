@@ -36,13 +36,13 @@
 
 # function sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T, N}
 #     Dᴬ = size(A)
-#     Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+#     Dᴮ = tuple(n_sim, n_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
 #     B = fill!(similar(A, S, Dᴮ), zero(S))
 #     sample!(B, A)
 # end
 
 # function sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T, N}
-#     B = fill!(similar(A, S, (n_cat, n_sim)), zero(S))
+#     B = fill!(similar(A, S, (n_sim, n_cat)), zero(S))
 #     sample!(B, A)
 # end
 
@@ -55,13 +55,13 @@ _sample(::Type{S}, A, n_sim, ::Nothing, dims) where {S<:Real} = _sample(S, A, n_
 
 function _sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, dims::NTuple{P, Int}) where {S<:Real} where {P} where {T, N}
     Dᴬ = size(A)
-    Dᴮ = tuple(n_cat, n_sim, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
+    Dᴮ = tuple(n_sim, n_cat, ntuple(d -> d ∈ dims ? 1 : Dᴬ[d], Val(N))...)
     B = fill!(similar(A, S, Dᴮ), zero(S))
     sample!(B, A)
 end
 
 function _sample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T, N}
-    B = fill!(similar(A, S, (n_cat, n_sim)), zero(S))
+    B = fill!(similar(A, S, (n_sim, n_cat)), zero(S))
     sample!(B, A)
 end
 
@@ -70,7 +70,7 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     K, V, q = _sqhist_init(T, 0)
     large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
@@ -81,9 +81,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
-            for (j′, j) ∈ enumerate(axes(B, 2))
-                c = C[j′]
-                B[Iₛ[c], j, IR] += one(S)
+            for (i′, i) ∈ enumerate(axes(B, 1))
+                c = C[i′]
+                B[i, Iₛ[c], IR] += one(S)
             end
         end
     end
@@ -94,7 +94,7 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, Vector{T}}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     K, V, q = _sqhist_init(T, 0)
     large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
@@ -104,9 +104,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int}, 
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
-        for (j′, j) ∈ enumerate(axes(B, 2))
-            c = C[j′]
-            B[Iₛ[c], j, IR] += one(S)
+        for (i′, i) ∈ enumerate(axes(B, 1))
+            c = C[i′]
+            B[i, Iₛ[c], IR] += one(S)
         end
     end
     B
@@ -116,7 +116,7 @@ end
 _sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = _sample(S, A, n_sim, n_cat, :)
 _sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = _sample(S, A, n_sim, n_cat, :)
 function _sample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat}
-    B = zeros(S, n_cat, n_sim)
+    B = zeros(S, n_sim, n_cat)
     sample!(B, A)
 end
 
@@ -124,10 +124,10 @@ function sample!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}) where {
     _check_reducedims(B, A)
     Iₛ, p = A
     K, V = sqhist(p)
-    C = generate(K, V, size(B, 2))
-    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
-        c = C[j′]
-        B[Iₛ[c], j] += one(S)
+    C = generate(K, V, size(B, 1))
+    @inbounds for (i′, i) ∈ enumerate(axes(B, 1))
+        c = C[i′]
+        B[i, Iₛ[c]] += one(S)
     end
     B
 end
@@ -138,16 +138,16 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{Int}, M}, N} where {M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
             generate!(C, U, n)
-            for (j′, j) ∈ enumerate(axes(B, 2))
-                c = C[j′]
-                B[Iₛ[c], j, IR] += one(S)
+            for (i′, i) ∈ enumerate(axes(B, 1))
+                c = C[i′]
+                B[i, Iₛ[c], IR] += one(S)
             end
         end
     end
@@ -158,15 +158,15 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int}, N}) where {S<:Real, N′} where {N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     @inbounds for IA ∈ CartesianIndices(A)
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
         generate!(C, U, n)
-        for (j′, j) ∈ enumerate(axes(B, 2))
-            c = C[j′]
-            B[Iₛ[c], j, IR] += one(S)
+        for (i′, i) ∈ enumerate(axes(B, 1))
+            c = C[i′]
+            B[i, Iₛ[c], IR] += one(S)
         end
     end
     B
@@ -176,7 +176,7 @@ end
 _sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} = _sample(S, A, n_sim, n_cat, :)
 _sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {N} = _sample(S, A, n_sim, n_cat, :)
 function _sample(::Type{S}, A::Vector{Int}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real}
-    B = zeros(S, n_cat, n_sim)
+    B = zeros(S, n_sim, n_cat)
     sample!(B, A)
 end
 
@@ -185,10 +185,10 @@ end
 function sample!(B::AbstractMatrix{S}, Iₛ::Vector{Int}) where {S<:Real}
     _check_reducedims(B, Iₛ)
     n = length(Iₛ)
-    C = generate(n, size(B, 2))
-    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
-        c = C[j′]
-        B[Iₛ[c], j] += one(S)
+    C = generate(n, size(B, 1))
+    @inbounds for (i′, i) ∈ enumerate(axes(B, 1))
+        c = C[i′]
+        B[i, Iₛ[c]] += one(S)
     end
     B
 end
@@ -198,7 +198,7 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Vector{T}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     K, V, q = _sqhist_init(T, 0)
     large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
@@ -209,9 +209,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
-            for (j′, j) ∈ enumerate(axes(B, 2))
-                c = C[j′]
-                B[c, j, IR] += one(S)
+            for (i′, i) ∈ enumerate(axes(B, 1))
+                c = C[i′]
+                B[i, c, IR] += one(S)
             end
         end
     end
@@ -222,7 +222,7 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) where {S<:Real, N′} where {T<:AbstractFloat, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     K, V, q = _sqhist_init(T, 0)
     large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
@@ -232,9 +232,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N}) wher
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
-        for (j′, j) ∈ enumerate(axes(B, 2))
-            c = C[j′]
-            B[c, j, IR] += one(S)
+        for (i′, i) ∈ enumerate(axes(B, 1))
+            c = C[i′]
+            B[i, c, IR] += one(S)
         end
     end
     B
@@ -244,17 +244,17 @@ end
 _sample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = _sample(S, A, n_sim, n_cat, :)
 _sample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = _sample(S, A, n_sim, n_cat, :)
 function _sample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat} where {N}
-    B = zeros(S, n_cat, n_sim)
+    B = zeros(S, n_sim, n_cat)
     sample!(B, A)
 end
 
 function sample!(B::AbstractMatrix{S}, A::Vector{T}) where {S<:Real} where {T<:AbstractFloat}
     _check_reducedims(B, A)
     K, V = sqhist(A)
-    C = generate(K, V, size(B, 2))
-    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
-        c = C[j′]
-        B[c, j] += one(S)
+    C = generate(K, V, size(B, 1))
+    @inbounds for (i′, i) ∈ enumerate(axes(B, 1))
+        c = C[i′]
+        B[i, c] += one(S)
     end
     B
 end
@@ -265,7 +265,7 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{SparseVector{Tv, Ti}, M}, N} where {Tv<:AbstractFloat, Ti<:Integer, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     K, V, q = _sqhist_init(Tv, 0)
     large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
@@ -277,9 +277,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Re
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
             generate!(C, U, K, V)
-            for (j′, j) ∈ enumerate(axes(B, 2))
-                c = C[j′]
-                B[Iₛ[c], j, IR] += one(S)
+            for (i′, i) ∈ enumerate(axes(B, 1))
+                c = C[i′]
+                B[i, Iₛ[c], IR] += one(S)
             end
         end
     end
@@ -290,7 +290,7 @@ end
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti}, N}) where {S<:Real, N′} where {Tv<:AbstractFloat, Ti<:Integer, N}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])
-    C, U = _genstorage_init(Float64, size(B, 2))
+    C, U = _genstorage_init(Float64, size(B, 1))
     K, V, q = _sqhist_init(Tv, 0)
     large, small = _largesmall_init(0)
     @inbounds for IA ∈ CartesianIndices(A)
@@ -301,9 +301,9 @@ function sample!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector{Tv, Ti
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
         generate!(C, U, K, V)
-        for (j′, j) ∈ enumerate(axes(B, 2))
-            c = C[j′]
-            B[Iₛ[c], j, IR] += one(S)
+        for (i′, i) ∈ enumerate(axes(B, 1))
+            c = C[i′]
+            B[i, Iₛ[c], IR] += one(S)
         end
     end
     B
@@ -314,7 +314,7 @@ _sample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::Int) where 
 _sample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = _sample(S, A, n_sim, n_cat, :)
 
 function _sample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat} where {N}
-    B = zeros(S, n_cat, n_sim)
+    B = zeros(S, n_sim, n_cat)
     sample!(B, A)
 end
 
@@ -322,10 +322,10 @@ function sample!(B::AbstractMatrix{S}, A::SparseVector{T}) where {S<:Real} where
     _check_reducedims(B, A)
     Iₛ, p = A.nzind, A.nzval
     K, V = sqhist(p)
-    C = generate(K, V, size(B, 2))
-    @inbounds for (j′, j) ∈ enumerate(axes(B, 2))
-        c = C[j′]
-        B[Iₛ[c], j] += one(S)
+    C = generate(K, V, size(B, 1))
+    @inbounds for (i′, i) ∈ enumerate(axes(B, 1))
+        c = C[i′]
+        B[i, Iₛ[c]] += one(S)
     end
     B
 end
