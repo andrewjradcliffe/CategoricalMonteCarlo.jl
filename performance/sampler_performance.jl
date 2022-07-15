@@ -546,42 +546,165 @@ function _vsample_chunk_dim1!(B::AbstractArray{S, N′}, A::AbstractArray{R, N},
     return B
 end
 
-B = zeros(Int, 10000,10000,1,1,1);
-D = [[rand(1:10000, 2), rand(1:10000, 4), rand(1:10000, 6)] for _ = 1:10, _ = 1:10, _ = 1:10];
+n_cat = 10^3
+D = [[rand(1:n_cat, 2), rand(1:n_cat, 4), rand(1:n_cat, 6)] for _ = 1:10, _ = 1:10, _ = 1:10];
+E = [[(rand(1:n_cat, 2), normalize1!(rand(2))),
+      (rand(1:n_cat, 4), normalize1!(rand(4))),
+      (rand(1:n_cat, 6), normalize1!(rand(4)))] for _ = 1:10, _ = 1:10, _ = 1:10];
+E2 = [[(rand(1:n_cat, 20), normalize1!(rand(20))),
+       (rand(1:n_cat, 40), normalize1!(rand(40))),
+       (rand(1:n_cat, 60), normalize1!(rand(40)))] for _ = 1:10, _ = 1:10, _ = 1:10];
 
-@benchmark vsample!($B, $D)
-@benchmark vsample3_dim1!($B, $D)
+# # Equal sized output.
+# B = zeros(Int, n_cat,n_cat,1,1,1);
+# @benchmark vsample!($B, $D)
+# @benchmark vsample3_dim1!($B, $D)
+# @benchmark vsample!($B, $E)
+# @benchmark vsample3_dim1!($B, $E)
+# @benchmark vsample!($B, $E2)
+# @benchmark vsample3_dim1!($B, $E2)
 
-E = [[(rand(1:10000, 2), normalize1!(rand(2))),
-      (rand(1:10000, 4), normalize1!(rand(4))),
-      (rand(1:10000, 6), normalize1!(rand(4)))] for _ = 1:10, _ = 1:10, _ = 1:10];
+# appropriately sized
+n_sim = 10^3
+B_dim2 = zeros(Int, n_cat, n_sim);
+B_dim1 = zeros(Int, n_sim, n_cat);
 
-E2 = [[(rand(1:10000, 20), normalize1!(rand(20))),
-      (rand(1:10000, 40), normalize1!(rand(40))),
-      (rand(1:10000, 60), normalize1!(rand(40)))] for _ = 1:10, _ = 1:10, _ = 1:10];
+@benchmark vsample!($B_dim2, $D)
+@benchmark vsample3_dim1!($B_dim1, $D)
+@benchmark vsample!($B_dim2, $E)
+@benchmark vsample3_dim1!($B_dim1, $E)
+@benchmark vsample!($B_dim2, $E2)
+@benchmark vsample3_dim1!($B_dim1, $E2)
 
-@benchmark vsample!($B, $E)
-@benchmark vsample3_dim1!($B, $E)
-@benchmark vsample!($B, $E2)
-@benchmark vsample3_dim1!($B, $E2)
+# larger simulation number
+n_sim = 10^4
+B_dim2 = zeros(Int, n_cat, n_sim);
+B_dim1 = zeros(Int, n_sim, n_cat);
 
-B1 = zeros(Int, size(B));
-B2 = zeros(Int, size(B));
-vsample!(B1, E);
-vsample3_dim1!(B2, E);
-s1 = sum(B1, dims=2);
-s2 = sum(B2, dims=1);
+@benchmark vsample!($B_dim2, $D)
+@benchmark vsample3_dim1!($B_dim1, $D)
+@benchmark vsample!($B_dim2, $E)
+@benchmark vsample3_dim1!($B_dim1, $E)
+@benchmark vsample!($B_dim2, $E2)
+@benchmark vsample3_dim1!($B_dim1, $E2)
 
-B1_1 = zeros(Int, 10000,10^5,1,1,1);
-B2_1 = zeros(Int, 10^5, 10000,1,1,1);
+# artificially inflated number of categories
+n_cat = 10^4
+B_dim2 = zeros(Int, n_cat, n_sim);
+B_dim1 = zeros(Int, n_sim, n_cat);
 
-@benchmark vsample!($B1_1, $E)
-@benchmark vsample3_dim1!($B2_1, $E)
-@benchmark vsample!($B1_1, $E2)
-@benchmark vsample3_dim1!($B2_1, $E2)
+@benchmark vsample!($B_dim2, $D)
+@benchmark vsample3_dim1!($B_dim1, $D)
+@benchmark vsample!($B_dim2, $E)
+@benchmark vsample3_dim1!($B_dim1, $E)
+@benchmark vsample!($B_dim2, $E2)
+@benchmark vsample3_dim1!($B_dim1, $E2)
 
-@benchmark vtsample!($B1_1, $E, chunksize=10000)
-@benchmark vtsample_dim1!($B2_1, $E, chunksize=10000)
-@benchmark vtsample!($B1_1, $E2, chunksize=10000)
-@benchmark vtsample_dim1!($B2_1, $E2, chunksize=10000)
+# large difference in tile size
+n_cat, n_sim = 10^3, 10^5
+B_dim2 = zeros(Int, n_cat, n_sim);
+B_dim1 = zeros(Int, n_sim, n_cat);
 
+@benchmark vsample!($B_dim2, $D)
+@benchmark vsample3_dim1!($B_dim1, $D)
+@benchmark vsample!($B_dim2, $E)
+@benchmark vsample3_dim1!($B_dim1, $E)
+@benchmark vsample!($B_dim2, $E2)
+@benchmark vsample3_dim1!($B_dim1, $E2)
+
+# no reduction
+n_cat, n_sim = 10^3, 10^3
+B_dim2 = zeros(Int, n_cat, n_sim, 10, 10, 10);
+B_dim1 = zeros(Int, n_sim, n_cat, 10, 10, 10);
+
+@benchmark vsample!($B_dim2, $D)
+@benchmark vsample3_dim1!($B_dim1, $D)
+@benchmark vsample!($B_dim2, $E)
+@benchmark vsample3_dim1!($B_dim1, $E)
+@benchmark vsample!($B_dim2, $E2)
+@benchmark vsample3_dim1!($B_dim1, $E2)
+
+# threading examples
+n_cat, n_sim = 10^3, 10^5
+B_dim2 = zeros(Int, n_cat, n_sim, 1, 1, 1);
+B_dim1 = zeros(Int, n_sim, n_cat, 1, 1, 1);
+
+
+@benchmark vtsample!($B_dim2, $D, chunksize=10000)
+@benchmark vtsample_dim1!($B_dim1, $D, chunksize=10000)
+@benchmark vtsample!($B_dim2, $E, chunksize=10000)
+@benchmark vtsample_dim1!($B_dim1, $E, chunksize=10000)
+@benchmark vtsample!($B_dim2, $E2, chunksize=10000)
+@benchmark vtsample_dim1!($B_dim1, $E2, chunksize=10000)
+
+B_dim2 .= 0;
+B_dim1 .= 0;
+
+vtsample!(B_dim2, E2, chunksize=10000);
+vtsample_dim1!(B_dim1, E2, chunksize=10000);
+
+
+# @turbo on the additions: small speed gain, but more temporaries -- probably not worth
+# it given the potential problems with non-unit strides when working across multiple
+# dimensions.
+B = B_dim2;
+keep, default = Broadcast.shapeindexer(axes(B)[3:end])
+rs = splitranges(firstindex(B, 2):lastindex(B, 2), 10000);
+𝒥 = rs[1]
+
+B .= 0;
+
+@benchmark _vsample_chunk!($B_dim2, $E, $keep, $default, $𝒥)
+@benchmark _vsample_chunk2!($B_dim2, $E, $keep, $default, $𝒥)
+@benchmark _vsample_chunk!($B_dim2, $E2, $keep, $default, $𝒥)
+@benchmark _vsample_chunk2!($B_dim2, $E2, $keep, $default, $𝒥)
+
+@benchmark _vsample_chunk_dim1!($B_dim1, $E, $keep, $default, $𝒥)
+@benchmark _vsample_chunk_dim1_2!($B_dim1, $E, $keep, $default, $𝒥)
+@benchmark _vsample_chunk_dim1!($B_dim1, $E2, $keep, $default, $𝒥)
+@benchmark _vsample_chunk_dim1_2!($B_dim1, $E2, $keep, $default, $𝒥)
+
+function _vsample_chunk2!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, 𝒥::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
+    C, U = _genstorage_init(Float64, length(𝒥))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        Bv = view(B, :, 𝒥, IR)
+        for (Iₛ, p) ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            vgenerate!(C, U, K, V)
+            @turbo for j ∈ indices((Bv, C), (2, 1))
+                c = C[j]
+                Bv[Iₛ[c], j] += one(S)
+            end
+        end
+    end
+    return B
+end
+
+
+function _vsample_chunk_dim1_2!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep, default, ℐ::UnitRange{Int}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
+    C, U = _genstorage_init(Float64, length(ℐ))
+    K, V, q = _sqhist_init(T, 0)
+    large, small = _largesmall_init(0)
+    @inbounds for IA ∈ CartesianIndices(A)
+        IR = Broadcast.newindex(IA, keep, default)
+        a = A[IA]
+        Bv = view(B, ℐ, :, IR)
+        for (Iₛ, p) ∈ a
+            n = length(p)
+            resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
+            sqhist!(K, V, large, small, q, p)
+            vgenerate!(C, U, K, V)
+            @turbo for i ∈ indices((Bv, C), (1, 1))
+                c = C[i]
+                Bv[i, Iₛ[c]] += one(S)
+            end
+        end
+    end
+    return B
+end
