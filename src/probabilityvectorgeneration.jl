@@ -143,3 +143,22 @@ function f(I, 𝐰, u)
     Iₛ, ω
 end
 f(I, 𝐰) = f(I, 𝐰, 0.5) # closure to provide u; or just hard code u
+
+################################################################
+# 2022-08-07: revised pvg; useful approach to dealing with type instability
+# of what could otherwise be phrased as map(a -> map(x -> (x, f(x)), a), A)
+# Needs to be adapted to handle AbstractArray{<:AbstractArray{T}} and also AbstractArray{T}
+# ultimately, if `f` is type-stable, then one can just use `map` to create a homogeneously
+# typed output; such an approach is more flexible, and defers the details to the user.
+_typeoffirstnonempty(f, A) = typeof(f(first(A[findfirst(!isempty, A)])))
+function pvg(f, A::AbstractArray{T, N}) where {T<:AbstractArray{S, M}, N} where {S, M}
+    Tₒ = _typeoffirstnonempty(f, A)
+    B = initialize(Array{Tₒ, M}, size(A))
+    pvg!(f, B, A)
+end
+function pvg!(f, B, A)
+    for i ∈ eachindex(B, A)
+        !isempty(A[i]) && (B[i] = map(f, A[i]))
+    end
+    B
+end
