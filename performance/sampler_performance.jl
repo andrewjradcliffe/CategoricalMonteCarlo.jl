@@ -624,6 +624,32 @@ B_dim1 = zeros(Int, n_sim, n_cat, 10, 10, 10);
 @benchmark vsample!($B_dim2, $E2)
 @benchmark vsample3_dim1!($B_dim1, $E2)
 
+A₀ = 𝓃𝓂Is
+a₀ = A₀[findfirst(!isempty, A₀)]
+a = map(Is -> algorithm2_2(Is, (𝐰ₐ′, F)), a₀)
+𝑓(Is, ws) = Is[1], algorithm2_2(Is, ws)
+𝑓(Is) = 𝑓(Is, (𝐰ₐ′, F))
+map(𝑓, a₀)
+𝑚𝑓(x) = isempty(x) ? Vector{Tuple{Vector{Int}, Vector{Float64}}}() : map(𝑓, x)
+A = map(𝑚𝑓, A₀);
+
+# simulation index on dim2
+@timev B = vsample(Int, A, 10^3, dims=:);
+@timev vsample!(B, A);
+
+@timev Bt = vtsample(Int, A, 10^5, dims=:);
+@timev vtsample!(Bt, A);
+
+# simulation index on dim1
+B_dim1 = zeros(Int, 10^3, 13797);
+@timev vsample3_dim1!(B_dim1, A);
+
+Bt_dim1 = zeros(Int, 10^5, 13797);
+@timev vtsample_dim1!(Bt_dim1, A);
+
+# partial reduction
+B = vsample(Int, A, 10^2, dims=(2,3,4,5));
+
 # threading examples
 n_cat, n_sim = 10^3, 10^5
 B_dim2 = zeros(Int, n_cat, n_sim, 1, 1, 1);
