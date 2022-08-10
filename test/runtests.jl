@@ -3,8 +3,8 @@ using Random
 using SparseArrays
 using Test
 
-import CategoricalMonteCarlo: _check_reducedims, splitranges,
-    _typeofinv, _typeofprod, _u, _check_u01
+using CategoricalMonteCarlo: _check_reducedims, splitranges,
+    _typeofinv, _typeofprod, _u, _check_u01, bounds_cat
 
 const tests = [
     "utils.jl",
