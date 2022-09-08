@@ -162,3 +162,20 @@ function pvg!(f, B, A)
     end
     B
 end
+
+function tpvg(f, A::AbstractArray{T, N}) where {T<:AbstractArray{S, M}, N} where {S, M}
+    Tₒ = _typeoffirstnonempty(f, A)
+    B = tinitialize(Array{Tₒ, M}, size(A))
+    tpvg!(f, B, A)
+end
+function tpvg!(f, B, A)
+    Threads.@threads for i ∈ eachindex(B, A)
+        # !isempty(A[i]) && (B[i] = map(f, A[i]))
+        if isempty(A[i])
+            empty!(B[i])
+        else
+            B[i] = map(f, A[i])
+        end
+    end
+    B
+end
