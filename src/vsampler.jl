@@ -113,7 +113,7 @@ function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector{Int},
 end
 
 # The simplest case: a sparse vector (as bare components)
-_vsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} where {N} = _vsample(S, A, n_sim, n_cat, :)
+_vsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = _vsample(S, A, n_sim, n_cat, :)
 _vsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = _vsample(S, A, n_sim, n_cat, :)
 function _vsample(::Type{S}, A::Tuple{Vector{Int}, Vector{T}}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_sim, n_cat)
@@ -243,7 +243,7 @@ end
 # The simplest case: a dense vector
 _vsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = _vsample(S, A, n_sim, n_cat, :)
 _vsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = _vsample(S, A, n_sim, n_cat, :)
-function _vsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat} where {N}
+function _vsample(::Type{S}, A::Vector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_sim, n_cat)
     vsample!(B, A)
 end
@@ -313,7 +313,7 @@ end
 _vsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::Int) where {S<:Real} where {T<:AbstractFloat} = _vsample(S, A, n_sim, n_cat, :)
 _vsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, dims::NTuple{N, Int}) where {S<:Real} where {T<:AbstractFloat} where {N} = _vsample(S, A, n_sim, n_cat, :)
 
-function _vsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat} where {N}
+function _vsample(::Type{S}, A::SparseVector{T}, n_sim::Int, n_cat::Int, ::Colon) where {S<:Real} where {T<:AbstractFloat}
     B = zeros(S, n_sim, n_cat)
     vsample!(B, A)
 end
