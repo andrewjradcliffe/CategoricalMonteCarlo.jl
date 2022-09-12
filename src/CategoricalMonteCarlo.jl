@@ -21,11 +21,14 @@ export algorithm2_1, algorithm2_1!, algorithm2_2, algorithm2_2!,
     algorithm4!, algorithm4,
     normalize1, normalize1!
 
+export pvg, pvg!, tpvg, tpvg!
+
 include("utils.jl")
 include("normalizations.jl")
 include("sampler.jl")
 include("tsampler_batch.jl")
 include("vsampler.jl")
 include("vtsampler_batch.jl")
+include("probabilityvectorgeneration.jl")
 
 end
