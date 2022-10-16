@@ -49,7 +49,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep,
             n = length(p)
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
-            vgenerate!(C, U, K, V)
+            generate!(C, U, K, V)
             for l ∈ eachindex(C, ℐ)
                 c = C[l]
                 i = ℐ[l]
@@ -72,7 +72,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Tuple{Vector
         n = length(p)
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
-        vgenerate!(C, U, K, V)
+        generate!(C, U, K, V)
         for l ∈ eachindex(C, ℐ)
             c = C[l]
             i = ℐ[l]
@@ -102,7 +102,7 @@ end
 function _sample_chunk!(B::AbstractMatrix{S}, A::Tuple{Vector{Int}, Vector{T}}, ℐ::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     Iₛ, p = A
     K, V = sqhist(p)
-    C = vgenerate(K, V, length(ℐ))
+    C = generate(K, V, length(ℐ))
     @inbounds for l ∈ eachindex(C, ℐ)
         c = C[l]
         i = ℐ[l]
@@ -127,7 +127,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep,
         a = A[IA]
         for Iₛ ∈ a
             n = length(Iₛ)
-            vgenerate!(C, U, n)
+            generate!(C, U, n)
             for l ∈ eachindex(C, ℐ)
                 c = C[l]
                 i = ℐ[l]
@@ -145,7 +145,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{Int},
         IR = Broadcast.newindex(IA, keep, default)
         Iₛ = A[IA]
         n = length(Iₛ)
-        vgenerate!(C, U, n)
+        generate!(C, U, n)
         for l ∈ eachindex(C, ℐ)
             c = C[l]
             i = ℐ[l]
@@ -175,7 +175,7 @@ end
 function _sample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{Int}, ℐ::UnitRange{Int}) where {S<:Real}
     Iₛ = A
     n = length(Iₛ)
-    C = vgenerate(n, length(ℐ))
+    C = generate(n, length(ℐ))
     @inbounds for l ∈ eachindex(C, ℐ)
         c = C[l]
         i = ℐ[l]
@@ -197,7 +197,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep,
             n = length(p)
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
-            vgenerate!(C, U, K, V)
+            generate!(C, U, K, V)
             for l ∈ eachindex(C, ℐ)
                 c = C[l]
                 i = ℐ[l]
@@ -219,7 +219,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{Vector{T}, N
         n = length(p)
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
-        vgenerate!(C, U, K, V)
+        generate!(C, U, K, V)
         for l ∈ eachindex(C, ℐ)
             c = C[l]
             i = ℐ[l]
@@ -249,7 +249,7 @@ end
 function _sample_chunk!(B::AbstractMatrix{S}, A::AbstractVector{T}, ℐ::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     p = copyto!(Vector{T}(undef, length(A)), A)
     K, V = sqhist(p)
-    C = vgenerate(K, V, length(ℐ))
+    C = generate(K, V, length(ℐ))
     @inbounds for l ∈ eachindex(C, ℐ)
         c = C[l]
         i = ℐ[l]
@@ -272,7 +272,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}, keep,
             n = length(p)
             resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
             sqhist!(K, V, large, small, q, p)
-            vgenerate!(C, U, K, V)
+            generate!(C, U, K, V)
             for l ∈ eachindex(C, ℐ)
                 c = C[l]
                 i = ℐ[l]
@@ -295,7 +295,7 @@ function _sample_chunk!(B::AbstractArray{S, N′}, A::AbstractArray{SparseVector
         n = length(p)
         resize!(K, n); resize!(V, n); resize!(large, n); resize!(small, n); resize!(q, n)
         sqhist!(K, V, large, small, q, p)
-        vgenerate!(C, U, K, V)
+        generate!(C, U, K, V)
         for l ∈ eachindex(C, ℐ)
             c = C[l]
             i = ℐ[l]
@@ -325,7 +325,7 @@ end
 function _sample_chunk!(B::AbstractMatrix{S}, A::SparseVector{T}, ℐ::UnitRange{Int}) where {S<:Real} where {T<:AbstractFloat}
     Iₛ, p = A.nzind, A.nzval
     K, V = sqhist(p)
-    C = vgenerate(K, V, length(ℐ))
+    C = generate(K, V, length(ℐ))
     @inbounds for l ∈ eachindex(C, ℐ)
         c = C[l]
         i = ℐ[l]
