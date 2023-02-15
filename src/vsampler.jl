@@ -47,6 +47,15 @@
 # end
 
 #### A revised public interface
+"""
+    vsample(::Type{T<:Real}=Int, A::AbstractArray, n_sim::Int; [dims=:], [n_cat=nothing])
+
+See `sample` for full documentation; identical in behavior except that
+the underlying Marsaglia sampler uses `LoopVectorization`. Sometimes, but not
+always, confers speedup.
+
+See also: [`vtsample`](@ref), [`sample`](@ref), [`tsample`](@ref)
+"""
 vsample(::Type{S}, A, n_sim; dims=:, n_cat=nothing) where {S<:Real} = _vsample(S, A, n_sim, n_cat, dims)
 vsample(A, n_sim; dims=:, n_cat=nothing) = _vsample(Int, A, n_sim, n_cat, dims)
 
