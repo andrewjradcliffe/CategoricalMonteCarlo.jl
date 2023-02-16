@@ -76,6 +76,14 @@ end
 
 ################
 # The expected case: vectors of sparse vectors (as their bare components)
+"""
+    vsample!(B::AbstractArray, A::AbstractArray)
+
+Identical to `sample!` except that except that
+the underlying Marsaglia sampler uses `LoopVectorization`.
+
+See also: [`vtsample!`](@ref), [`sample!`](@ref), [`tsample!`](@ref)
+"""
 function vsample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])

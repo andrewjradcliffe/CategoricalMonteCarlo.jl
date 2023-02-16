@@ -94,6 +94,14 @@ end
 
 ################
 # The expected case: vectors of sparse vectors (as their bare components)
+"""
+    sample!(B::AbstractArray, A::AbstractArray)
+
+Draw samples, summing (and potentially reducing) in-place into `B`. The shape of `B`
+determines the extent of reduction performed.
+
+See also: [`tsample!`](@ref), [`vsample!`](@ref), [`vtsample!`](@ref)
+"""
 function sample!(B::AbstractArray{S, N′}, A::AbstractArray{R, N}) where {S<:Real, N′} where {R<:AbstractArray{Tuple{Vector{Int}, Vector{T}}, M}, N} where {T<:AbstractFloat, M}
     _check_reducedims(B, A)
     keep, default = Broadcast.shapeindexer(axes(B)[3:end])

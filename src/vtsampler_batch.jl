@@ -12,7 +12,7 @@
 
 See `sample` for full documentation; identical in behavior except that
 thread-based parallelism is used to accelerate the computation; also,
-underlying Marsaglia sampler uses `LoopVectorization`.
+the underlying Marsaglia sampler uses `LoopVectorization`.
 
 The optional `chunksize` argument provides a fixed upper bound for the number of
 simulations to be passed to each thread. Depending on number of independent categorical
@@ -39,6 +39,14 @@ function _vtsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::
     vtsample!(B, A, chunksize)
 end
 
+"""
+    tsample!(B::AbstractArray, A::AbstractArray; [chunksize=5000])
+
+Identical to `sample!` except that thread-based parallelism is used to accelerate
+the computation. also, the underlying Marsaglia sampler uses `LoopVectorization`.
+
+See also: [`vsample!`](@ref), [`sample!`](@ref), [`tsample!`](@ref)
+"""
 vtsample!(B, A; chunksize::Int=5000) = vtsample!(B, A, chunksize)
 function vtsample!(B, A, chunksize::Int)
     _check_reducedims(B, A)

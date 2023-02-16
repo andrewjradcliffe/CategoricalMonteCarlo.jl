@@ -38,6 +38,14 @@ function _tsample(::Type{S}, A::AbstractArray{T, N}, n_sim::Int, n_cat::Int, ::C
     tsample!(B, A, chunksize)
 end
 
+"""
+    tsample!(B::AbstractArray, A::AbstractArray; [chunksize=5000])
+
+Identical to `sample!` except that thread-based parallelism is used to accelerate
+the computation.
+
+See also: [`sample!`](@ref), [`vsample!`](@ref), [`vtsample!`](@ref)
+"""
 tsample!(B, A; chunksize::Int=5000) = tsample!(B, A, chunksize)
 function tsample!(B, A, chunksize::Int)
     _check_reducedims(B, A)
