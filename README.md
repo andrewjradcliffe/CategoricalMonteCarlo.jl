@@ -83,3 +83,7 @@ julia> ["mean" "mcse" "std" "2.5th" "50th" "97.5";
  0.166285  0.000372336  0.372336  0.0       0.0      1.0
  0.166566  0.000372588  0.372588  0.0       0.0      1.0
 ```
+
+
+## Future Work
+- Description of normalizers (weight vector->probability vector)
